@@ -5,6 +5,9 @@ import { DATA_SOURCE } from "astro:env/server";
 const source = DATA_SOURCE;
 
 async function createRepository(): Promise<RockGamesRepository> {
+  if (import.meta.env.PROD && source !== "supabase") {
+    throw new Error("La aplicación de producción requiere DATA_SOURCE=supabase. No se usará JSON como fallback.");
+  }
   if (source === "json") return new JsonRepository();
   if (source === "supabase") {
     const { SupabaseRepository } = await import("./supabase-repository");

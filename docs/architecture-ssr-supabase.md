@@ -1,13 +1,13 @@
 # ROCK GAMES — arquitectura propuesta para SSR y Supabase
 
-Estado: arquitectura aprobada; esquema y repositorios JSON/Supabase implementados. Tres migraciones aplicadas al proyecto remoto enlazado. Sin Auth/CMS ni SSR productivo.
+Estado: arquitectura aprobada; repositorios JSON/Supabase implementados y SSR Node standalone configurado para Hostinger. Sin Auth/CMS ni despliegue productivo.
 
 ### Estado de esta fase
 
-- Implementado: contratos, modelos de vista, interfaz de repositorio, adaptadores JSON/Supabase y selección explícita `DATA_SOURCE=json|supabase`.
+- Implementado: contratos, modelos de vista, interfaz de repositorio, adaptadores JSON/Supabase y selección explícita `DATA_SOURCE=json|supabase`. Producción rechaza `json` y no usa fallback.
 - Migradas: `/`, `/catalogo` y `/como-funciona`; ninguna depende de `getSiteContent()` ni del antiguo `src/lib/catalog.ts`.
 - La wishlist mantiene su clave/formato actual de `localStorage`; JSON usa las claves anteriores y Supabase usa el UUID de variante. No se migran automáticamente claves antiguas.
-- SSR queda preparado pero pospuesto: todavía no hay proveedor de despliegue elegido ni adapter instalado. `astro.config.mjs` conserva la salida estática para mantener válido el build del hosting actual. Al elegir el host, instalar su adapter antes de activar `output: "server"`.
+- SSR: `astro.config.mjs` usa `output: "server"` con `@astrojs/node` en `standalone`. El entrypoint es `dist/server/entry.mjs`; el adapter también sirve los assets desde `dist/client/`.
 - Las migraciones implementan entidades, enums, constraints, índices, triggers, RLS de solo lectura para `anon`, el bucket público `public-media` y datos base sin inventario.
 - `supabase/seed.sql` incluye solo fichas `(DEMO)`, precios de prueba y cero testimonios. Los medios apuntan a artes locales con `bucket=local-assets`, no a objetos ya subidos.
 - La inspección y las pruebas remotas se ejecutaron con el proyecto linked; Docker Desktop sigue sin daemon local. El CLI temporal no se agregó como dependencia.
@@ -24,14 +24,12 @@ Estado: arquitectura aprobada; esquema y repositorios JSON/Supabase implementado
 
 ## 1. Estado actual y decisión de SSR
 
-- Astro instalado: 7.3.5. `astro.config.mjs` no declara `output` ni adapter; el sitio se genera de forma estática.
-- No existe `export const prerender` en las páginas. Las rutas `/`, `/catalogo` y `/como-funciona` se prerenderizan por el valor predeterminado de Astro.
-- `getSiteContent()` importa `src/data/site.json`. React recibe ese contenido como props en `client:load`; la hidratación no convierte el origen de datos en dinámico.
-- README describe publicación en cualquier host estático. No hay configuración de Vercel, Netlify, Cloudflare, Node u otro proveedor. El destino de despliegue no se puede inferir.
+- Astro instalado: 7.3.5; `@astrojs/node` se usa en modo `standalone` con `output: "server"`.
+- Las rutas `/`, `/catalogo` y `/como-funciona` consultan el repositorio en render SSR; no tienen `prerender = true`.
+- La fuente de producción se valida como Supabase. La selección JSON se conserva para desarrollo explícito, pero no es fallback si Supabase falla.
+- No se implementa caché de datos: respuestas HTML privadas/no-store y consultas Supabase `no-store`, con timeout de 12 segundos.
 
-**Objetivo condicionado de SSR:** cuando se confirme el host, el destino podrá usar `output: "server"` y las tres rutas podrán renderizarse en servidor, porque consumen configuración o productos editables. Astro necesita un adapter para generar un build SSR. No activar `output: "server"` sin adapter: dejaría el build de producción sin runtime. La arquitectura de datos es independiente del adapter. Al elegir hosting, instalar el adapter oficial correspondiente: `@astrojs/node` en modo standalone para un servidor Node, o el de Vercel, Netlify o Cloudflare si ese es el host. Hasta entonces, esta fase conserva el build estático funcional y no presupone proveedor.
-
-No habrá `prerender = true` en rutas que consulten datos editables. Los assets optimizados seguirán siendo estáticos. Al principio, catálogo y precios usarán respuesta sin caché compartida; luego se podrá añadir una caché corta o invalidación desde el CMS. La meta es reflejar cambios sin rebuild, no prometer visibilidad instantánea si más adelante se configura caché.
+Los errores de consulta se convierten en una respuesta controlada HTTP 503 sin mostrar datos antiguos. Los assets estáticos con hash continúan usando la política inmutable del adapter.
 
 ## 2. Modelo relacional
 
@@ -153,7 +151,7 @@ Los tipos de fila de PostgreSQL se generarán tras aprobar el esquema y permanec
 
 `getHomePageData()` puede componer las consultas necesarias de manera concurrente para SSR y evitar consultas repetidas por componente. Las páginas leen el repositorio y entregan DTO serializables a React. Las reglas de filtrado/formatos no dependerán de la respuesta cruda de Supabase.
 
-Durante transición, `DATA_SOURCE=json|supabase` seleccionará explícitamente el proveedor. El JSON es fallback temporal por fase, no respuesta silenciosa ante un error de BD en producción: mostrar precios antiguos cuando Supabase falla sería engañoso. Al finalizar migración, quitar `json-repository.ts`, `site.json` y `DATA_SOURCE=json`.
+Durante transición, `DATA_SOURCE=json|supabase` selecciona explícitamente el proveedor. JSON sigue disponible como origen alternativo de desarrollo; no se usa automáticamente si falla la BD en producción, porque mostrar precios antiguos sería engañoso. Al finalizar migración, quitar `json-repository.ts`, `site.json` y `DATA_SOURCE=json`.
 
 ## 7. Wishlist local
 
@@ -161,26 +159,51 @@ Se conserva `localStorage` y la ausencia de cuentas. Hoy `rockgames:selected` gu
 
 ## 8. Migración y efecto en componentes
 
-1. Elegir hosting/runtime, instalar su adapter y activar `output: "server"`. Mantener `site.json` como fuente explícita y verificar que las tres rutas SSR conservan contenido e hidratación. Esta fase no requiere Supabase.
+1. **Completado:** elegir runtime Node para Hostinger, instalar el adapter oficial y activar `output: "server"`; conservar `site.json` como fuente solo de transición.
 2. Implementar contratos, view models y repositorio JSON. La UI sigue leyendo datos locales, ahora detrás de la capa de acceso.
 3. Tras aprobar el esquema, crear plataformas/familias, juegos y variantes; mapear los IDs existentes a slugs/UUID estables. Separar PS4/PS5 y Xbox One/Series X|S solo con información comercial confirmada.
 4. Incorporar géneros, tags y reglas del recomendador. Comprobar que los resultados siguen siendo coherentes.
 5. Incorporar colecciones y secciones; migrar En portada, Más vendidos, ofertas y Próximamente, sin promocionar los placeholders conceptuales como lanzamientos reales.
 6. Configurar settings públicos, testimonios reales y Storage. Publicar testimonios solo tras consentimiento.
-7. Cambiar el repositorio activo a Supabase y verificar home, catálogo, filtros, búsqueda, precios, enlace WhatsApp y wishlist por variante. Un fallo de BD debe producir estado de error apropiado, no precios estáticos viejos.
+7. **Completado para la lectura pública:** seleccionar Supabase en producción y verificar home, catálogo, filtros, búsqueda, precios, enlace WhatsApp y wishlist por variante. Los fallos ahora devuelven HTTP 503, no precios estáticos.
 8. Quitar JSON y código de transición. Construir CMS después, con Auth/RLS de escritura y validación de formularios.
 
 Impacto esperado: `Catalog.tsx`, `ProductPoster.tsx`, `FeaturedShowcase.tsx` y `GameFinder.tsx` deberán aceptar variantes y seleccionar una antes de usar precio o wishlist. `EditorialSections.astro` leerá colecciones y testimonios; `HeroScroll.astro` y `SiteLayout.astro` leerán secciones/settings. `platforms.ts` conservará los colores e iconos de presentación, mientras nombres/relaciones de consola vendible saldrán del repositorio. Las páginas Astro pasarán de `getSiteContent()` a los métodos de la capa de datos.
 
 ## 9. Riesgos y decisiones pendientes
 
-- Sin host definido no se puede escoger un adapter de despliegue definitivo. Activar SSR sin adapter rompería el build.
-- Las fichas actuales asumen una plataforma/precio por juego. Se necesita diseño de selección de variante en card, filtro, En portada y wishlist.
+- El despliegue aún no se ejecutó: falta configurar el Node.js Web App y variables en Hostinger, y confirmar los campos de su preset para output y proceso.
+- El catálogo remoto sigue vacío; no hay productos, precios ni disponibilidad comercial que puedan ofrecerse para venta.
 - Los nueve precios y artes son de muestra; no migrarlos como inventario listo para vender sin revisión comercial y derechos de uso.
 - El ranking actual y el filtro de Más vendidos discrepan. Las colecciones harán explícita la única selección editorial.
-- Los cambios en CMS se reflejarán sin rebuild; una caché CDN demasiado larga podría retrasarlos. Precios y disponibilidad exigen política de caché clara.
-- SSR agrega un servidor público que antes no existía. Antes de producción hay que revisar dependencias, límites de consulta, timeouts y comportamiento ante caída de Supabase.
+- Los cambios directos en Supabase se reflejan por solicitud SSR; una caché configurada externamente en Hostinger/CDN podría retrasarlos, por lo que hay que conservar `no-store` para HTML.
+- SSR agrega un servidor público; se configuraron timeout, manejo de errores y auditoría de dependencias, pero deben revisarse los logs del primer despliegue y los límites de consulta.
+- WhatsApp aún no tiene número configurado; el enlace se genera sin destinatario hasta definir `site_settings.whatsapp_number`.
 - No hay pagos ni control real de stock. `stock_quantity` es opcional hasta definir inventario de códigos; no presentar compra directa por un estado de BD no verificado.
+
+## 11. Ejecución Node / Hostinger
+
+Configuración preparada, sin despliegue ejecutado:
+
+- Perfil: Node.js Web App, raíz del repositorio como raíz de la aplicación.
+- Versión recomendada: Node 24 LTS si está disponible en el plan; Node 22.12+ también satisface el `engines` del proyecto.
+- Build command: `npm run build`.
+- Start command: `npm run start` (ejecuta `node --env-file-if-exists=.env ./dist/server/entry.mjs`). En Hostinger, usa sus variables configuradas en el panel; el archivo `.env` no se sube.
+- Variables de runtime y build: `DATA_SOURCE=supabase`, `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `HOST=0.0.0.0`. Hostinger inyecta el `PORT`; no configurarlo a un valor fijo.
+- Salida generada: `dist/server/entry.mjs` y `dist/client/`. Mantener como directorio de trabajo la raíz del proyecto para que `npm run start`, `package.json` y sus dependencias estén disponibles. Si la pantalla pide output directory como artefacto, indicar `dist/`; no cambiar la raíz de la aplicación a esa carpeta.
+- Para GitHub: conectar el repositorio y rama desde la opción Node.js Web App de Hostinger; configurar build, start y variables en el panel. Push/deploy reconstruye el código, pero las ediciones de Supabase se sirven por petición SSR y no necesitan rebuild.
+
+Las páginas del sitio responden con `Cache-Control: private, no-store, max-age=0, must-revalidate`. Los bundles con hash bajo `/_astro/` siguen su política inmutable del adapter. El cliente Supabase no guarda resultados localmente y cada consulta usa `cache: no-store` con timeout de 12 s. Un error de render/datos genera una página genérica `503` sin JSON ni detalles del proveedor; el log contiene solo la ruta.
+
+Antes de despliegue, validar en la interfaz de Hostinger el campo exacto de output (puede depender del preset) y el soporte del runtime Node elegido. No se ha publicado ni conectado el dominio.
+
+## Auditoría de dependencias y secretos
+
+- `npm audit` encontró `GHSA-ch52-4w7c-c8xp`, severidad alta (CVSS 7.5), en la ruta `astro@7.3.5 → http-cache-semantics@4.2.0`. El advisory cubría las versiones `<=4.2.0`.
+- `npm audit fix` resolvió el advisory actualizando a `http-cache-semantics@4.3.0`, dentro del rango existente y sin `--force`. La auditoría final reporta cero vulnerabilidades.
+- El proyecto no configura una caché HTTP compartida para catálogo ni precios; el HTML usa `private, no-store`, y Supabase recibe consultas con `cache: no-store` y timeout de 12 segundos.
+- `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_PUBLISHABLE_KEY` se leen en el servidor en runtime. Se restringió `vite.envPrefix` a `VITE_`; la inspección de `dist/client` y `dist/server` no encontró los valores en los artefactos, y el bundle cliente no contiene referencias a claves `service_role`/`SUPABASE_SECRET_KEY`.
+- La clave publishable es la clave pública prevista por Supabase para acceso anónimo sujeto a grants y RLS. No se usa `service_role` ni una secret key.
 
 ## 10. Referencias técnicas
 

@@ -3,14 +3,19 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0 <25"
+  },
   "scripts": {
     "dev": "astro dev --host 127.0.0.1",
     "build": "astro build",
+    "start": "node --env-file-if-exists=.env ./dist/server/entry.mjs",
     "verify:supabase": "node --env-file=.env scripts/verify-supabase-public.mjs",
     "optimize:art": "node scripts/optimize-art.mjs",
     "preview": "astro preview --host 127.0.0.1"
   },
   "dependencies": {
+    "@astrojs/node": "^11.1.6",
     "@astrojs/react": "^7.0.0",
     "@fontsource-variable/google-sans": "^5.3.1",
     "@fontsource-variable/google-sans-flex": "^5.3.1",

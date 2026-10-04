@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Abre `http://127.0.0.1:4321`. En esta fase, `npm run build` sigue generando el sitio estático para no romper el despliegue actual mientras no se elija proveedor de hosting para SSR.
+Abre `http://127.0.0.1:4321`. `npm run build` genera la aplicación SSR para Node y `npm run start` inicia el build local usando las variables de `.env` cuando existan.
 
 ## Organización
 
@@ -67,9 +67,30 @@ Los nueve artes de juegos son imágenes conceptuales generadas para esta maqueta
 
 ### Origen de datos y SSR
 
-`DATA_SOURCE=json` sigue siendo el valor predeterminado. `.env.example` documenta las variables y Astro valida sus nombres. Con `DATA_SOURCE=supabase`, el repositorio requiere `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_PUBLISHABLE_KEY`; cualquier error de configuración o consulta se propaga y no vuelve silenciosamente al JSON.
+Las rutas `/`, `/catalogo` y `/como-funciona` se renderizan bajo demanda con Astro SSR y `@astrojs/node` en modo `standalone`. Producción requiere `DATA_SOURCE=supabase`; elegir JSON en ese entorno produce una respuesta de servicio temporalmente no disponible y nunca activa un fallback. El repositorio es la única capa de consultas.
 
-SSR está pendiente de confirmar un host. `astro.config.mjs` no declara `output: "server"` ni instala un adapter, así que `npm run build` sigue siendo válido para el despliegue estático actual. Antes de activar SSR hay que elegir dónde correrá la web e instalar su adapter de Astro (por ejemplo, Node standalone para un servidor Node administrado, o el adapter oficial del proveedor elegido). No se añadió un adapter genérico sin conocer el entorno de producción.
+Configura `DATA_SOURCE=supabase`, `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_PUBLISHABLE_KEY` en las variables del servidor. Aunque las dos últimas conservan el nombre `PUBLIC_` de Supabase, Astro las lee como configuración server-only en runtime; `vite.envPrefix` está acotado a `VITE_`, así que las variables de Supabase no se serializan al navegador ni quedan congeladas dentro del artefacto. No uses `service_role` ni una secret key para estas lecturas.
+
+El adapter sirve `dist/client/` y ejecuta `dist/server/entry.mjs`. El script `npm run start` respeta `PORT` y `HOST`; para desarrollo local también carga `.env` si existe. El middleware marca el HTML como `private, no-store` y devuelve una pantalla HTTP 503 si falla la consulta. El servidor no reutiliza el catálogo de `site.json` cuando Supabase falla.
+
+### Despliegue en Hostinger Node.js Web App
+
+Configura la raíz de la aplicación en el directorio del repositorio y selecciona el preset Node.js Web App:
+
+```text
+Node: 24 LTS recomendado (Node 22.12+ mínimo del proyecto)
+Build command: npm run build
+Start command: npm run start
+Application root: raíz del repositorio
+Output: dist/ (solo si Hostinger solicita el directorio de build)
+HOST: 0.0.0.0
+PORT: dejar que Hostinger lo inyecte
+DATA_SOURCE: supabase
+PUBLIC_SUPABASE_URL: URL del proyecto
+PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishable key
+```
+
+No subas `.env`; agrega los valores en Hostinger. Para GitHub, conecta el repo y rama desde la creación/configuración de la Node.js Web App. Un push puede iniciar un nuevo despliegue de código; editar catálogo, precio o disponibilidad en Supabase se refleja en solicitudes SSR sin rebuild. Consulta el estado y opciones del plan en [la guía de Hostinger para Node.js Web Apps](https://www.hostinger.com/support/how-to-deploy-a-nodejs-website-in-hostinger/) y [su guía de variables de entorno](https://www.hostinger.com/support/how-to-add-environment-variables-during-node-js-application-deployment/).
 
 La wishlist continúa guardando IDs en `localStorage` bajo `rockgames:selected`. En modo JSON, `selectionId` conserva el ID existente del juego. En modo Supabase, usa el UUID de `game_variant`; las tarjetas permiten elegir plataforma/edición y el panel/WhatsApp usan esa selección y su precio actual. No se reescriben automáticamente los IDs antiguos guardados en navegadores; se necesitará una migración explícita si se quieren resolver contra variantes.
 
@@ -105,10 +126,10 @@ Se validó en desarrollo una ficha temporal con un juego y dos variantes, sus fi
 
 ## Camino hacia la autoadministración
 
-El contenido se lee desde una capa de repositorio con contratos de dominio y modelos de vista; el adaptador JSON conserva `site.json`, y el adaptador Supabase ya está implementado detrás de `DATA_SOURCE`. No hay CMS ni Auth administrativa. La salida sigue siendo estática hasta elegir host para SSR; por eso un build con `DATA_SOURCE=supabase` consulta los datos durante ese build y deja esa copia en los archivos generados.
+El contenido se lee desde una capa de repositorio con contratos de dominio y modelos de vista; `site.json` se conserva como proveedor explícito de transición y Supabase queda activo en producción. Las páginas consultan Supabase durante cada solicitud SSR, por lo que cambios comerciales no dependen de reconstruir el sitio. No hay CMS ni Auth administrativa.
 
 Para ofrecer compra directa después habrá que decidir proveedor de pagos, método de entrega digital y reglas de confirmación de stock. El flujo actual arma la solicitud para WhatsApp y no cobra pagos.
 
 ## Dependencias
 
-Astro está actualizado a 7.3.5. Al 3 de octubre de 2026, `npm audit` aún señala un aviso alto en su dependencia transitiva `http-cache-semantics` 4.2.0, que no tiene una versión corregida publicada. Esta versión se genera como archivos estáticos y no ejecuta Astro en el servidor público. Revisa ese aviso de nuevo antes de añadir renderizado en servidor.
+Astro está actualizado a 7.3.5 y usa `@astrojs/node` 11.1.6. `npm audit` detectó un advisory alto en la dependencia transitiva `astro → http-cache-semantics@4.2.0`; `npm audit fix` la actualizó a 4.3.0 dentro del rango semver existente, sin `--force`. La auditoría final no reporta vulnerabilidades.

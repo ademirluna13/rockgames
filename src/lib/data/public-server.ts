@@ -18,6 +18,13 @@ export function getPublicServerClient(): SupabaseClient {
 
   client = createClient(url, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: {
+      fetch: (input, init) => fetch(input, {
+        ...init,
+        cache: "no-store",
+        signal: init?.signal ?? AbortSignal.timeout(12_000),
+      }),
+    },
   });
   return client;
 }
