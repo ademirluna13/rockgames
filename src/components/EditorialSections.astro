@@ -1,0 +1,92 @@
+---
+import type { HomePageData } from "../lib/data";
+import { themeForPlatform } from "../lib/platforms";
+import BrandIcon from "./BrandIcon.astro";
+
+type Props = { data: HomePageData; waUrl: string; contactUrl: string };
+const { data, waUrl, contactUrl } = Astro.props;
+const formatMoney = (amount: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: data.settings.currency, maximumFractionDigits: 0 }).format(amount);
+const platformAccent = (platform: string) => themeForPlatform(platform).accent;
+const offerGames = data.offers;
+const bestsellers = data.bestsellers;
+---
+<div class="editorial-home">
+  <section class="bestseller-section" aria-label="Más vendidos">
+    <div class="editorial-head"><div><p class="section-kicker">Selección ROCK</p><h2>Más <strong>vendidos.</strong></h2></div><p>Juegos para empezar a explorar el catálogo.</p></div>
+    <div class="bestseller-layout"><div class="bestseller-list">{bestsellers.map((game, index) => <a class="bestseller-row" data-preview={index} href={`/catalogo?buscar=${encodeURIComponent(game.title)}`} style={`--row-accent: ${platformAccent(game.platform)}`}><span class="bestseller-rank">0{index + 1}</span><img src={game.cover} alt="" loading="lazy" decoding="async" /><div class="bestseller-details"><small>{game.platform} · {game.genre}</small><h3>{game.title}</h3><p>{game.description}</p></div><div class="bestseller-purchase"><span>{game.tag}</span>{game.oldPrice && <s>{formatMoney(game.oldPrice)}</s>}<strong>{formatMoney(game.price)}</strong><small>Ver juego <i aria-hidden="true">↗</i></small></div></a>)}</div><div class="bestseller-preview" aria-hidden="true">{bestsellers.map((game, index) => <img src={game.cover} alt="" loading="lazy" decoding="async" data-preview-art={index} class={index === 0 ? "is-active" : ""} />)}<span>Selección ROCK GAMES</span></div></div>
+  </section>
+
+  <section class="offer-section editorial-offers" id="ofertas">
+    <div class="offer-main"><p class="section-kicker">{data.offerSection.eyebrow}</p><h2><span>{data.offerSection.titleLead}</span><br /><strong>{data.offerSection.titleStrong}</strong></h2><p>{data.offerSection.description}</p><a class="dark-cta" href={waUrl} target="_blank" rel="noopener noreferrer">{data.offerSection.cta} <span>↗</span></a></div>
+    <div class="offer-gallery" aria-label="Juegos con descuento">{offerGames.map((game) => <article class="offer-art"><img src={game.cover} alt="" loading="lazy" decoding="async" /><div><span>−{Math.round((1 - game.price / game.oldPrice!) * 100)}%</span><h3>{game.title}</h3><p><s>{formatMoney(game.oldPrice!)}</s><strong>{formatMoney(game.price)}</strong></p></div></article>)}</div>
+    <span class="offer-fineprint">Confirma precio y disponibilidad.</span>
+  </section>
+
+  <section class="upcoming-section" aria-label="Próximos lanzamientos">
+    <div class="editorial-head"><div><p class="section-kicker">Lo que viene</p><h2>Próximamente<span>.</span></h2></div><p>Un espacio listo para nuevos anuncios.</p></div>
+    <div class="upcoming-grid">{data.upcoming.map((item) => <article class="upcoming-card"><img src={item.cover} alt="" loading="lazy" decoding="async" /><div class="upcoming-shade"></div><div class="upcoming-content"><span>{item.platform} / {item.status}</span><h3>{item.title}</h3></div></article>)}</div>
+    <p class="upcoming-note">Fechas y disponibilidad sujetas a confirmación.</p>
+  </section>
+
+  <section class="references-section" id="referencias" aria-labelledby="references-title"><div class="editorial-head"><div><p class="section-kicker">REFERENCIAS</p><h2 id="references-title">De quienes <strong>ya jugaron.</strong></h2></div><p>Experiencias reales, compartidas con permiso.</p></div>{data.testimonials.length ? <div class="reference-list">{data.testimonials.map((item) => <blockquote class="reference-quote"><p>“{item.quote}”</p><footer><strong>{item.alias}</strong><span>{item.platform}{item.origin ? ` · ${item.origin}` : ""}{item.date ? ` · ${item.date}` : ""}</span></footer></blockquote>)}</div> : <div class="references-empty"><span>Próximamente</span><p>Estamos reuniendo opiniones de clientes reales. Mientras tanto, puedes revisar cómo funciona la compra y resolver tus dudas directamente con nosotros.</p><a href="/como-funciona">Ver cómo funciona ↗</a></div>}</section>
+
+  <section class="experience-section" id="experiencia">
+    <div class="experience-lead"><div class="experience-top"><p class="section-kicker">Cómo comprar</p><h2><span>Elige tus juegos.</span><br /><strong>Nosotros te ayudamos.</strong></h2><p>Guarda los que te interesan y envíanos la lista. Te confirmamos precio, disponibilidad y forma de entrega antes de cerrar la compra.</p></div>
+      <div class="purchase-scene" aria-label="Ejemplo visual de una consulta"><div class="purchase-scene-head"><span class="signal-dot"></span><strong>Tu lista</strong><small>Ejemplo de consulta</small></div><div class="purchase-scene-item"><img src="/assets/featured-elden-v1.webp" alt="" loading="lazy" /><div><strong>Elden Ring</strong><span>PlayStation · Digital</span></div><b>✓</b></div><div class="purchase-scene-item"><img src="/assets/featured-halo-v1.webp" alt="" loading="lazy" /><div><strong>Halo Infinite</strong><span>Xbox · Digital</span></div><b>✓</b></div><div class="purchase-scene-message">Hola, me interesan estos juegos. ¿Me confirmas disponibilidad y cómo comprar?</div><div class="purchase-scene-reply">Claro. Revisamos versión, precio y entrega contigo.</div></div>
+    </div>
+    <div class="steps"><article><span>01</span><strong>Busca</strong><p>Filtra por consola o escribe el nombre.</p></article><article><span>02</span><strong>Guarda</strong><p>Añade los juegos a tu lista.</p></article><article><span>03</span><strong>Pregunta</strong><p>Envíanos la lista por WhatsApp.</p></article><article><span>04</span><strong>Compra</strong><p>Te explicamos pago y entrega.</p></article></div><div class="experience-links"><a href="/como-funciona">Así funciona ↗</a><a href={contactUrl} target="_blank" rel="noopener noreferrer"><BrandIcon name="WhatsApp" /> Preguntar por WhatsApp</a></div>
+  </section>
+
+  <section class="trust-section" aria-label="Compra con claridad"><div class="trust-visual"><img src="/assets/featured-war-v1.webp" alt="" loading="lazy" decoding="async" /><div><p class="section-kicker">Compra digital</p><h2>Sin dudas antes<br /><strong>de pagar.</strong></h2></div></div><div class="trust-copy"><p>Te confirmamos la versión, la consola compatible, el precio y la forma de entrega por WhatsApp. Así sabes exactamente qué vas a recibir.</p><div class="trust-checklist"><span>01 <strong>Versión y consola compatible</strong></span><span>02 <strong>Precio confirmado</strong></span><span>03 <strong>Entrega digital explicada</strong></span><span>04 <strong>Atención directa por WhatsApp</strong></span></div></div></section>
+
+  <section class="social-section"><div class="editorial-head"><div><p class="section-kicker">ENCUÉNTRANOS</p><h2>Sigue a <strong>ROCK GAMES.</strong></h2></div><p>Novedades, juegos y respuestas en un solo lugar.</p></div><div class="social-grid"><div class="social-item"><BrandIcon name="Facebook" /><strong>Facebook</strong><p>Ofertas y novedades.</p>{data.settings.socialLinks.facebook ? <a href={data.settings.socialLinks.facebook} target="_blank" rel="noopener noreferrer">Visitar perfil ↗</a> : <span>Perfil por configurar</span>}</div><div class="social-item"><BrandIcon name="YouTube" /><strong>YouTube</strong><p>Contenido y recomendaciones.</p>{data.settings.socialLinks.youtube ? <a href={data.settings.socialLinks.youtube} target="_blank" rel="noopener noreferrer">Ver canal ↗</a> : <span>Canal por configurar</span>}</div><a class="social-item social-item-live" href={contactUrl} target="_blank" rel="noopener noreferrer"><BrandIcon name="WhatsApp" /><strong>WhatsApp</strong><p>Preguntas, disponibilidad y compras.</p><span>Iniciar conversación ↗</span></a></div></section>
+
+  <section class="closing-section" id="contacto"><img class="closing-backdrop" src="/assets/featured-halo-v1.webp" alt="" loading="lazy" decoding="async" /><p class="section-kicker">¿No aparece en el catálogo?</p><h2><span>Dinos qué juego</span><br /><strong>estás buscando.</strong></h2><p class="closing-description">Te ayudamos a encontrar la opción para tu consola.</p><a href={contactUrl} target="_blank" rel="noopener noreferrer">Escríbenos <span>↗</span></a></section>
+</div>
+
+<script>
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  gsap.registerPlugin(ScrollTrigger);
+  const scope = document.querySelector<HTMLElement>(".editorial-home");
+  if (scope) {
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      const context = gsap.context(() => {
+        const reveal = (selector: string, trigger: string, stagger = .08) => {
+          if (!scope.querySelector(selector) || !scope.querySelector(trigger)) return;
+          gsap.fromTo(selector, { autoAlpha: 0, y: 42 }, { autoAlpha: 1, y: 0, duration: .85, stagger, ease: "power3.out", scrollTrigger: { trigger, start: "top 82%", once: true } });
+        };
+        reveal(".bestseller-row", ".bestseller-list", .1);
+        reveal(".bestseller-preview", ".bestseller-layout");
+        reveal(".editorial-offers .offer-main > *", ".editorial-offers", .1);
+        reveal(".offer-art", ".editorial-offers", .16);
+        if (scope.querySelector(".upcoming-card")) gsap.fromTo(".upcoming-card", { clipPath: "inset(0 0 100% 0 round 22px)", autoAlpha: .7 }, { clipPath: "inset(0 0 0% 0 round 22px)", autoAlpha: 1, duration: 1, stagger: .15, ease: "power3.out", scrollTrigger: { trigger: ".upcoming-grid", start: "top 82%", once: true } });
+        reveal(".experience-top > *", ".experience-section", .1);
+        reveal(".purchase-scene", ".experience-section");
+        reveal(".steps article", ".steps", .1);
+        reveal(".trust-visual, .trust-copy", ".trust-section", .14);
+        reveal(".reference-quote, .references-empty", ".references-section", .1);
+        reveal(".social-item", ".social-section", .1);
+        reveal(".closing-section > *:not(.closing-backdrop)", ".closing-section", .1);
+        gsap.to(".closing-backdrop", { yPercent: 7, ease: "none", scrollTrigger: { trigger: ".closing-section", start: "top bottom", end: "bottom top", scrub: .8 } });
+      }, scope);
+      return () => context.revert();
+    });
+  }
+  const ranking = document.querySelector<HTMLElement>(".bestseller-section");
+  if (ranking) {
+    const rows = ranking.querySelectorAll<HTMLElement>(".bestseller-row");
+    const previews = ranking.querySelectorAll<HTMLElement>("[data-preview-art]");
+    rows.forEach((row, index) => {
+      const show = () => {
+        previews.forEach((preview, position) => {
+          preview.classList.toggle("is-active", position === index);
+          if (!matchMedia("(prefers-reduced-motion: reduce)").matches) gsap.to(preview, { opacity: position === index ? 1 : 0, scale: position === index ? 1 : 1.04, duration: .45, ease: "power2.out", overwrite: true });
+        });
+      };
+      row.addEventListener("mouseenter", show);
+      row.addEventListener("focus", show);
+    });
+  }
+</script>

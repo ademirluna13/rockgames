@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#101310" />
+  <meta name="description" content="Encuentra tu próximo juego favorito en ROCK GAMES. Catálogo digital para Xbox, PlayStation y Nintendo Switch." />
+  <title>ROCK GAMES — El siguiente nivel empieza aquí</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="announcement"><span class="live-dot"></span> CATÁLOGO DIGITAL <span class="announcement-sep">/</span> Atención directa y rápida <a href="#catalogo">Descubrir juegos <span aria-hidden="true">↗</span></a></div>
+  <header class="site-header">
+    <a class="brand" href="#inicio" aria-label="ROCK GAMES, inicio"><img src="assets/rock-games-logo.png" alt="Logo de ROCK GAMES" /><span>ROCK<span class="brand-games">GAMES</span></span></a>
+    <nav class="main-nav" aria-label="Navegación principal"><a href="#catalogo">Catálogo</a><a href="#ofertas">Ofertas</a><a href="#como-funciona">Cómo funciona</a></nav>
+    <a class="header-cta" href="#catalogo">Explorar juegos <span aria-hidden="true">↗</span></a>
+    <button class="menu-button" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span></button>
+  </header>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="hero-copy reveal">
+        <div class="eyebrow"><span class="eyebrow-mark">✳</span> TU PRÓXIMA AVENTURA TE ESPERA</div>
+        <h1>JUEGA EN<br /><span>OTRA LIGA.</span></h1>
+        <p>Los juegos que traes en mente, en un solo lugar. Explora el catálogo y encuentra tu próximo vicio favorito.</p>
+        <div class="hero-actions"><a class="button button-primary" href="#catalogo">Ver catálogo <span>↗</span></a><a class="text-link" href="#como-funciona">¿Cómo funciona? <span>↓</span></a></div>
+        <div class="hero-proof"><div class="proof-avatars"><span>R</span><span>G</span><span>★</span></div><p><strong>Buena vibra, buenos juegos.</strong><br />Atención personalizada en cada compra.</p></div>
+      </div>
+      <div class="hero-art" aria-label="Emblema ROCK GAMES">
+        <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+        <div class="hero-beam beam-left"></div><div class="hero-beam beam-right"></div>
+        <div class="hero-logo-wrap"><img src="assets/rock-games-logo.png" alt="El personaje y el emblema de ROCK GAMES" /></div>
+        <div class="floating-tag tag-top"><span class="tag-icon">↗</span><span><strong>LEVEL UP</strong><small>Tu siguiente juego</small></span></div>
+        <div class="floating-tag tag-bottom"><span class="tag-spark">✦</span><span><strong>QUE EMPIECE</strong><small>la partida</small></span></div>
+        <div class="hero-scroll"><span></span> SCROLL PARA EXPLORAR</div>
+      </div>
+      <div class="hero-counter"><strong>01</strong><span>/</span> CATÁLOGO DIGITAL</div>
+    </section>
+
+    <section class="platform-strip" aria-label="Plataformas disponibles"><span class="strip-label">TUS PLATAFORMAS FAVORITAS</span><div class="platforms"><span class="platform xbox"><i>×</i> XBOX</span><span class="platform playstation"><i>◎</i> PLAYSTATION</span><span class="platform nintendo"><i>▣</i> NINTENDO SWITCH</span></div><span class="strip-note"><span class="live-dot"></span> MÁS JUEGOS, MÁS MOMENTOS</span></section>
+
+    <section class="catalog section-pad" id="catalogo">
+      <div class="section-heading reveal"><div><div class="eyebrow"><span class="eyebrow-mark">✳</span> ENCUENTRA TU SIGUIENTE JUEGO</div><h2>EL CATÁLOGO<span class="lime-dot">.</span></h2></div><p>Busca esa historia que no puedes soltar,<br />o descubre una que ni sabías que querías.</p></div>
+      <div class="catalog-tools reveal">
+        <div class="filter-tabs" role="group" aria-label="Filtrar por consola"><button class="filter-tab active" data-platform="all">Todos <span data-count="all">0</span></button><button class="filter-tab" data-platform="PlayStation">PlayStation <span data-count="PlayStation">0</span></button><button class="filter-tab" data-platform="Xbox">Xbox <span data-count="Xbox">0</span></button><button class="filter-tab" data-platform="Nintendo Switch">Switch <span data-count="Nintendo Switch">0</span></button></div>
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="game-search" type="search" placeholder="Buscar un juego..." aria-label="Buscar juegos" /><kbd>⌘ K</kbd></label>
+      </div>
+      <div class="demo-note"><span>✳</span> Precios y disponibilidad de muestra. Estamos preparando el catálogo real.</div>
+      <div class="game-grid" id="game-grid" aria-live="polite"></div>
+      <div class="empty-state" id="empty-state" hidden><span>⌕</span><h3>No encontramos ese juego</h3><p>Prueba con otro nombre o cambia el filtro.</p></div>
+      <div class="catalog-bottom"><span><span class="live-dot"></span> ACTUALIZAMOS EL CATÁLOGO CONSTANTEMENTE</span><button class="text-link all-games">Ver todos los juegos <span>↓</span></button></div>
+    </section>
+
+    <section class="offer-band" id="ofertas"><div class="offer-glow"></div><div class="offer-index">ROCK<br />GAMES<br /><span>DROP 001</span></div><div class="offer-copy"><div class="eyebrow"><span class="eyebrow-mark">✳</span> OFERTAS QUE SÍ DAN GANAS</div><h2>LA SIGUIENTE<br /><span>PARTIDA VA POR NUESTRA CUENTA.</span></h2><p>Pronto llegan descuentos y ofertas especiales. Síguenos para ser el primero en enterarte.</p><a class="button button-dark" href="#contacto">Quiero enterarme <span>↗</span></a></div><div class="offer-sticker" aria-hidden="true"><span>GG</span><small>BUEN JUEGO<br />BUEN PRECIO</small></div></section>
+
+    <section class="how-section section-pad" id="como-funciona"><div class="section-heading reveal"><div><div class="eyebrow"><span class="eyebrow-mark">✳</span> SIMPLE, DIRECTO Y SIN COMPLICACIONES</div><h2>DE LA LISTA<br />A LA <span class="lime-text">PARTIDA.</span></h2></div><p>¿Viste algo que te gusta?<br />Así de fácil es dar el siguiente paso.</p></div><div class="steps"><article class="step reveal"><span class="step-number">01</span><div class="step-icon">⌕</div><h3>ENCUENTRA</h3><p>Explora los juegos y filtra por tu consola favorita.</p><span class="step-arrow">↗</span></article><article class="step reveal"><span class="step-number">02</span><div class="step-icon">＋</div><h3>ARMA TU LISTA</h3><p>Añade los que quieres y revisa tu selección.</p><span class="step-arrow">↗</span></article><article class="step reveal"><span class="step-number">03</span><div class="step-icon">◉</div><h3>HABLEMOS</h3><p>Confirma precio y disponibilidad directo por WhatsApp.</p><span class="step-arrow">↗</span></article><article class="step step-last reveal"><span class="step-number">04</span><div class="step-icon">✦</div><h3>A JUGAR</h3><p>Recibe los detalles y prepárate para el siguiente nivel.</p><span class="step-arrow">↗</span></article></div></section>
+
+    <section class="contact-section" id="contacto"><div class="contact-gorilla"><img src="assets/rock-games-logo.png" alt="" /></div><div class="contact-copy"><div class="eyebrow"><span class="eyebrow-mark">✳</span> ¿BUSCAS ALGO EN ESPECIAL?</div><h2>LA COMUNIDAD<br /><span>ROCK TE ESPERA.</span></h2><p>Si no lo encuentras, pregúntanos. Nos encanta ayudarte a dar con el juego perfecto.</p><a class="button button-primary" id="contact-whatsapp" href="https://wa.me/?text=Hola%20ROCK%20GAMES%2C%20busco%20un%20juego%20en%20especial." target="_blank" rel="noopener">Escríbenos por WhatsApp <span>↗</span></a></div><div class="contact-stamp">GG<br /><span>ROCK ON</span></div></section>
+  </main>
+  <footer class="site-footer"><a class="brand footer-brand" href="#inicio"><img src="assets/rock-games-logo.png" alt="" /><span>ROCK<span class="brand-games">GAMES</span></span></a><span class="footer-line">HECHO PARA LOS QUE JUEGAN EN SERIO <span>✳</span></span><a class="back-top" href="#inicio">VOLVER ARRIBA ↑</a><small>© <span id="year"></span> ROCK GAMES · CATÁLOGO DIGITAL</small></footer>
+
+  <div class="cart-backdrop" id="cart-backdrop"></div><aside class="cart-drawer" id="cart-drawer" aria-label="Tu selección" aria-hidden="true"><div class="cart-header"><div><div class="eyebrow">TU SELECCIÓN</div><h2>MI LISTA <span class="lime-text">(<span id="cart-count">0</span>)</span></h2></div><button class="close-cart" aria-label="Cerrar selección">×</button></div><div class="cart-items" id="cart-items"></div><div class="cart-empty" id="cart-empty"><span>＋</span><h3>Tu lista está vacía</h3><p>Agrega los juegos que te interesan y armaremos el mensaje por ti.</p><button class="button button-outline close-cart-action">Explorar catálogo</button></div><div class="cart-footer" id="cart-footer" hidden><div class="cart-total"><span>ESTIMADO</span><strong id="cart-total">$0</strong></div><p>Precios y existencias se confirman por WhatsApp.</p><a class="button button-primary whatsapp-order" id="whatsapp-order" href="#" target="_blank" rel="noopener">Continuar por WhatsApp <span>↗</span></a></div></aside>
+  <button class="floating-cart" id="floating-cart" aria-label="Abrir mi lista"><span>MI LISTA</span><b id="floating-count">0</b><span class="cart-bag">＋</span></button>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+---
+import { faFacebook, faPlaystation, faWhatsapp, faXbox, faYoutube } from "@fortawesome/free-brands-svg-icons";
+const { name, className = "" } = Astro.props;
+const icons = { PlayStation: faPlaystation, Xbox: faXbox, Facebook: faFacebook, WhatsApp: faWhatsapp, YouTube: faYoutube };
+const icon = icons[name as keyof typeof icons];
+const paths = icon ? (Array.isArray(icon.icon[4]) ? icon.icon[4] : [icon.icon[4]]) : [];
+---
+{icon ? <svg class={`brand-icon ${className}`} viewBox={`0 0 ${icon.icon[0]} ${icon.icon[1]}`} fill="currentColor" aria-hidden="true" focusable="false">{paths.map(path => <path d={path} />)}</svg> : <img class={`brand-icon ${className}`} src="/assets/nintendo-switch-mark.svg" alt="" aria-hidden="true" />}

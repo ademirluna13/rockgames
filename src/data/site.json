@@ -1,0 +1,57 @@
+{
+  "brand": "ROCK GAMES",
+  "country": "MX",
+  "currency": "MXN",
+  "whatsappNumber": "",
+  "analyticsId": "",
+  "socialLinks": {
+    "facebook": "",
+    "youtube": ""
+  },
+  "testimonials": [],
+  "recommendationMoods": [
+    { "id": "historia", "label": "Una buena historia", "gameIds": ["god-of-war", "zelda-totk", "spider-man-2"] },
+    { "id": "amigos", "label": "Jugar con amigos", "gameIds": ["mario-kart-world", "mario-wonder", "forza-horizon-5"] },
+    { "id": "competitivo", "label": "Algo competitivo", "gameIds": ["halo-infinite", "forza-horizon-5", "mario-kart-world"] },
+    { "id": "tranquilo", "label": "Algo tranquilo", "gameIds": ["astro-bot", "mario-wonder", "zelda-totk"] },
+    { "id": "precio", "label": "Cuidar el presupuesto", "gameIds": ["halo-infinite", "forza-horizon-5", "elden-ring"] },
+    { "id": "abierto", "label": "Mundo abierto", "gameIds": ["elden-ring", "zelda-totk", "forza-horizon-5"] },
+    { "id": "carreras", "label": "Carreras", "gameIds": ["forza-horizon-5", "mario-kart-world", "mario-wonder"] },
+    { "id": "nintendo", "label": "Algo para Nintendo", "gameIds": ["zelda-totk", "mario-wonder", "mario-kart-world"] }
+  ],
+  "hero": {
+    "video": "/assets/hero-forest-motion-v1.mp4",
+    "poster": "/assets/hero-forest-art-poster-v1.jpg",
+    "eyebrow": "ROCK GAMES / JUEGOS DIGITALES",
+    "titleLead": "TU PRÓXIMO JUEGO",
+    "titleStrong": "EMPIEZA AQUÍ.",
+    "description": "Juegos digitales para PlayStation, Xbox, Nintendo Switch y Switch 2. Elige el tuyo y consúltanos por WhatsApp.",
+    "featuredTitle": "Elden Ring",
+    "featuredLabel": "En portada"
+  },
+  "announcement": "Juegos digitales para tu consola",
+  "announcementLinkText": "Ver catálogo",
+  "offer": {
+    "eyebrow": "Ofertas",
+    "titleLead": "Un buen juego",
+    "titleStrong": "a buen precio.",
+    "description": "Las promociones cambian. Escríbenos y te contamos qué juegos tienen descuento para tu consola.",
+    "cta": "Consultar ofertas"
+  },
+  "bestsellerIds": ["spider-man-2", "god-of-war", "elden-ring"],
+  "upcoming": [
+    { "id": "orbit", "title": "Próximo anuncio", "platform": "PlayStation", "status": "Por confirmar", "cover": "/assets/upcoming-orbit-v1.webp" },
+    { "id": "ruins", "title": "Nueva aventura", "platform": "Nintendo Switch 2", "status": "Por confirmar", "cover": "/assets/upcoming-ruins-v1.webp" }
+  ],
+  "games": [
+    { "id": "elden-ring", "title": "Elden Ring", "platform": "PlayStation", "genre": "Acción / RPG", "description": "Un mundo inmenso para explorar a tu ritmo.", "cover": "/assets/featured-elden-v1.webp", "featured": true, "price": 899, "oldPrice": 1199, "tag": "Recomendado", "art": "elden", "symbol": "ER", "available": true },
+    { "id": "spider-man-2", "title": "Marvel's Spider-Man 2", "platform": "PlayStation", "genre": "Acción / Aventura", "description": "Dos héroes y una ciudad que no se detiene.", "cover": "/assets/featured-spider-v1.webp", "featured": true, "price": 1099, "oldPrice": null, "tag": "Más vendido", "art": "spider", "symbol": "SM", "available": true },
+    { "id": "zelda-totk", "title": "Tears of the Kingdom", "platform": "Nintendo Switch", "genre": "Aventura / RPG", "description": "Hyrule te espera por tierra y por cielo.", "cover": "/assets/featured-zelda-v1.webp", "featured": true, "price": 999, "oldPrice": null, "tag": "Recomendado", "art": "zelda", "symbol": "Z", "available": true },
+    { "id": "halo-infinite", "title": "Halo Infinite", "platform": "Xbox", "genre": "Acción / Shooter", "description": "Explora Zeta Halo en una campaña abierta.", "cover": "/assets/featured-halo-v1.webp", "featured": false, "price": 749, "oldPrice": 899, "tag": "Oferta", "art": "halo", "symbol": "H∞", "available": true },
+    { "id": "astro-bot", "title": "Astro Bot", "platform": "PlayStation", "genre": "Plataformas", "description": "Un viaje de plataformas lleno de sorpresas.", "cover": "/assets/featured-astro-v1.webp", "featured": false, "price": 899, "oldPrice": null, "tag": "Nuevo", "art": "astro", "symbol": "AB", "available": true },
+    { "id": "mario-wonder", "title": "Super Mario Bros. Wonder", "platform": "Nintendo Switch", "genre": "Plataformas", "description": "Cada nivel esconde una nueva sorpresa.", "cover": "/assets/featured-mario-v1.webp", "featured": false, "price": 949, "oldPrice": 1099, "tag": "Oferta", "art": "mario", "symbol": "M!", "available": true },
+    { "id": "forza-horizon-5", "title": "Forza Horizon 5", "platform": "Xbox", "genre": "Carreras", "description": "Conduce por paisajes que invitan a perderse.", "cover": "/assets/featured-forza-v1.webp", "featured": false, "price": 799, "oldPrice": null, "tag": "Recomendado", "art": "forza", "symbol": "FH", "available": true },
+    { "id": "god-of-war", "title": "God of War Ragnarök", "platform": "PlayStation", "genre": "Acción / Aventura", "description": "Kratos y Atreus frente al destino de los reinos.", "cover": "/assets/featured-war-v1.webp", "featured": false, "price": 999, "oldPrice": null, "tag": "Más vendido", "art": "war", "symbol": "GΩ", "available": true },
+    { "id": "mario-kart-world", "title": "Mario Kart World", "platform": "Nintendo Switch 2", "genre": "Carreras", "description": "Carreras para compartir, ahora a gran escala.", "cover": "/assets/featured-kart-v1.webp", "featured": false, "price": 1199, "oldPrice": null, "tag": "Nuevo", "art": "kart", "symbol": "MK", "available": true }
+  ]
+}

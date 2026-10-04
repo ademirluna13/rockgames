@@ -1,0 +1,31 @@
+{
+  "name": "rock-games",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1",
+    "build": "astro build",
+    "verify:supabase": "node --env-file=.env scripts/verify-supabase-public.mjs",
+    "optimize:art": "node scripts/optimize-art.mjs",
+    "preview": "astro preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@astrojs/react": "^7.0.0",
+    "@fontsource-variable/google-sans": "^5.3.1",
+    "@fontsource-variable/google-sans-flex": "^5.3.1",
+    "@fortawesome/free-brands-svg-icons": "^7.3.1",
+    "@supabase/supabase-js": "^2.117.2",
+    "@tailwindcss/vite": "^4.1.0",
+    "astro": "^7.3.5",
+    "gsap": "^3.13.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.9.0"
+  }
+}

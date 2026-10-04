@@ -1,0 +1,67 @@
+---
+import type { HeroViewModel } from "../lib/data";
+
+type Props = { hero: HeroViewModel };
+const { hero } = Astro.props;
+const strongWords = hero.titleStrong.trim().split(/\s+/);
+const accentWord = strongWords.pop() ?? "";
+---
+<section class="hero-story" id="inicio" aria-label="Bienvenido a ROCK GAMES">
+  <div class="hero-stage">
+    <div class="hero-media" aria-hidden="true">
+      <img class="hero-poster" src={hero.poster} alt="" fetchpriority="high" />
+      {hero.video && <video class="hero-video" autoplay muted loop playsinline preload="metadata" poster={hero.poster}>
+        <source src={hero.video} type="video/mp4" />
+      </video>}
+    </div>
+    <div class="hero-shade" aria-hidden="true"></div>
+    <div class="hero-content">
+      <p class="hero-kicker">{hero.eyebrow}</p>
+      <h1><span>{hero.titleLead}</span><strong>{strongWords.join(" ")} <em class="headline-accent">{accentWord}</em></strong></h1>
+      <p class="hero-description">{hero.description}</p>
+      <a class="hero-link" href="/catalogo">Ver catálogo <span>↗</span></a>
+    </div>
+    <a class="hero-campaign" href="#destacados"><span>{hero.featuredLabel}</span><strong>{hero.featuredTitle}</strong><i aria-hidden="true">↗</i></a>
+    <div class="hero-scroll-hint">Desliza para explorar <span aria-hidden="true">↓</span></div>
+    <div class="hero-progress" aria-hidden="true"><span></span></div>
+  </div>
+</section>
+
+<script>
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+  const hero = document.querySelector<HTMLElement>(".hero-story");
+  const video = hero?.querySelector<HTMLVideoElement>(".hero-video");
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  if (video) {
+    if (reducedMotion.matches) {
+      video.pause();
+      video.removeAttribute("autoplay");
+      video.preload = "none";
+    } else {
+      video.addEventListener("playing", () => video.classList.add("is-playing"));
+      video.addEventListener("error", () => video.classList.remove("is-playing"));
+      void video.play().catch(() => { /* El póster permanece visible. */ });
+    }
+  }
+
+  if (hero && !reducedMotion.matches) {
+    const intro = gsap.timeline({ defaults: { ease: "power3.out" } });
+    intro.fromTo(".hero-media", { scale: 1.11, filter: "brightness(.68)" }, { scale: 1, filter: "brightness(1)", duration: 1.5 }, 0)
+      .from(".hero-content > *", { y: 32, autoAlpha: 0, duration: .9, stagger: .11 }, .32)
+      .from(".hero-campaign", { x: 28, autoAlpha: 0, duration: .8 }, .85);
+    gsap.timeline({
+      defaults: { ease: "none" },
+      scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: 0.5, invalidateOnRefresh: true },
+    })
+      .to(".hero-stage", { scale: .94, borderRadius: 30, y: -12, duration: .22 }, .18)
+      .to(".hero-media", { scale: 1.07, duration: .22 }, .18)
+      .to(".hero-content", { y: -30, duration: .2 }, .22)
+      .to(".hero-stage", { autoAlpha: 0, duration: .22 }, .78)
+      .to(".hero-scroll-hint", { opacity: 0, duration: .2 }, .03)
+      .to(".hero-progress span", { scaleX: 1, duration: 1 }, 0);
+  }
+</script>

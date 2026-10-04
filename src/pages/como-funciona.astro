@@ -1,0 +1,56 @@
+---
+import SiteLayout from "../components/SiteLayout.astro";
+import BrandIcon from "../components/BrandIcon.astro";
+import { getHowPageData } from "../lib/data";
+
+const how = await getHowPageData();
+const askUrl = `https://wa.me/${how.settings.whatsappNumber}?text=${encodeURIComponent("Hola ROCK GAMES, tengo una duda sobre cómo comprar un juego digital.")}`;
+const steps = [
+  ["01", "Encuentra tu juego", "Explora el catálogo por consola o dinos qué título buscas."],
+  ["02", "Envíanos tu selección", "Guarda tus favoritos en Mis juegos y prepara un mensaje por WhatsApp."],
+  ["03", "Confirmamos los detalles", "Revisamos contigo consola, versión, disponibilidad, precio y método de entrega."],
+  ["04", "Realizas el pago", "Te indicamos las opciones disponibles para ese pedido antes de que pagues."],
+  ["05", "Recibes tu juego", "Te explicamos qué recibirás y cómo usarlo según el método acordado."],
+  ["06", "Seguimos contigo", "Si te surge una duda después, vuelve a escribirnos por el mismo canal."],
+];
+const faqs = [
+  ["¿Cómo recibo el juego?", "La entrega es digital. Puede variar según el juego y la plataforma; te explicamos el método exacto antes del pago."],
+  ["¿Funciona en mi consola?", "Nos dices tu consola y comprobamos la versión compatible contigo antes de cerrar la compra."],
+  ["¿Puedo comprar para otra persona?", "Consúltanos el juego y la consola de esa persona. Te diremos si la opción disponible permite regalarlo."],
+  ["¿Cuánto tarda la entrega?", "El tiempo depende de la disponibilidad y el método de entrega. Te lo confirmamos para tu pedido antes de pagar."],
+  ["¿Qué pasa si tengo problemas?", "Escríbenos con los datos de tu compra para revisar tu caso y orientarte."],
+  ["¿Qué métodos de pago aceptan?", "Te compartimos las opciones disponibles al confirmar tu pedido. Aún no hay un pago directo en esta web."],
+  ["¿Los precios pueden cambiar?", "Sí. Confirmamos el precio vigente de tu juego por WhatsApp antes de que pagues."],
+];
+---
+<SiteLayout settings={how.settings} page="how">
+  <div class="how-page">
+    <section class="how-hero">
+      <div class="how-hero-copy"><p class="section-kicker">GUÍA DE COMPRA DIGITAL</p><h1>Comprar digital <strong>es más fácil de lo que parece.</strong></h1><p>Antes de pagar, confirmamos contigo la consola, la versión, el precio y cómo recibirás tu juego.</p><div class="how-actions"><a class="how-primary" href="/catalogo">Ver catálogo <span>↗</span></a><a class="how-secondary" href={askUrl} target="_blank" rel="noopener noreferrer"><BrandIcon name="WhatsApp" />Preguntar por WhatsApp</a></div></div>
+      <div class="how-hero-visual"><img src="/assets/featured-elden-v1.webp" alt="" decoding="async" /><div class="how-proof"><span>ANTES DE PAGAR</span><strong>Tu juego, tu consola.</strong><small>Versión · precio · entrega</small></div></div>
+    </section>
+
+    <section class="how-flow" aria-labelledby="how-flow-title"><div class="how-section-head"><p class="section-kicker">PASO A PASO</p><h2 id="how-flow-title">Del catálogo <strong>a tu consola.</strong></h2><p>Seis pasos, con los detalles claros desde el principio.</p></div><div class="how-timeline">{steps.map(([number, title, copy], index) => <article class="how-step"><span class="how-step-number">{number}</span><div><h3>{title}</h3><p>{copy}</p></div>{index === 1 && <div class="how-mini-chat"><span>Hola, me interesan estos juegos…</span><span>Revisamos disponibilidad contigo.</span></div>}{index === 2 && <div class="how-mini-facts"><span><BrandIcon name="PlayStation" /> Consola</span><span>✓ Versión</span><span>✓ Precio</span></div>}</article>)}</div></section>
+
+    <section class="how-product"><div><p class="section-kicker">LO QUE RECIBES</p><h2>¿Qué estoy <strong>comprando?</strong></h2><p>Un juego digital es contenido para tu consola que se entrega sin disco físico. La forma de acceso puede ser distinta según el título y la plataforma.</p><p>Puede tratarse de un código, una cuenta, acceso digital u otro método. Antes de pagar te diremos cuál corresponde a tu pedido, qué necesitas y cómo usarlo.</p><a href={askUrl} target="_blank" rel="noopener noreferrer">Aclarar mi compra <span>↗</span></a></div><div class="how-product-visual"><div><BrandIcon name="PlayStation" /><BrandIcon name="Xbox" /><BrandIcon name="Nintendo Switch" /></div><img src="/assets/featured-halo-v1.webp" alt="" loading="lazy" decoding="async" /><span>El método se confirma para cada juego.</span></div></section>
+
+    <section class="how-faq"><div class="how-section-head"><p class="section-kicker">PREGUNTAS FRECUENTES</p><h2>Resolvamos <strong>las dudas.</strong></h2></div><div class="how-faq-list">{faqs.map(([question, answer]) => <details><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
+    <section class="how-end"><p class="section-kicker">CUANDO QUIERAS EMPEZAR</p><h2>Encuentra el juego.<br /><strong>Nosotros te guiamos.</strong></h2><div class="how-actions"><a class="how-primary" href="/catalogo">Explorar catálogo <span>↗</span></a><a class="how-secondary" href={askUrl} target="_blank" rel="noopener noreferrer"><BrandIcon name="WhatsApp" />Tengo una pregunta</a></div></section>
+  </div>
+</SiteLayout>
+
+<script>
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  gsap.registerPlugin(ScrollTrigger);
+  const scope = document.querySelector<HTMLElement>(".how-page");
+  if (scope && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const context = gsap.context(() => {
+      gsap.fromTo(".how-hero-copy > *", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .8, stagger: .1, ease: "power3.out" });
+      gsap.fromTo(".how-hero-visual", { opacity: 0, clipPath: "inset(0 0 100% 0 round 26px)" }, { opacity: 1, clipPath: "inset(0 0 0% 0 round 26px)", duration: 1.1, ease: "power3.out" });
+      gsap.fromTo(".how-step", { opacity: 0, y: 35 }, { opacity: 1, y: 0, duration: .7, stagger: .13, ease: "power3.out", scrollTrigger: { trigger: ".how-timeline", start: "top 78%", once: true } });
+      gsap.fromTo(".how-product > *", { opacity: 0, y: 35 }, { opacity: 1, y: 0, duration: .8, stagger: .16, ease: "power3.out", scrollTrigger: { trigger: ".how-product", start: "top 80%", once: true } });
+    }, scope);
+    window.addEventListener("pagehide", () => context.revert(), { once: true });
+  }
+</script>

@@ -1,0 +1,64 @@
+---
+import "@fontsource-variable/google-sans-flex/wght.css";
+import "@fontsource-variable/google-sans/wght.css";
+import "../styles/global.css";
+import "../styles/refinement.css";
+import "../styles/platform-motion.css";
+import "../styles/editorial.css";
+import "../styles/site-pages.css";
+import "../styles/conversion.css";
+import type { SiteSettings } from "../lib/data";
+import BrandIcon from "./BrandIcon.astro";
+import WishlistNav from "./WishlistNav";
+
+type Props = { settings: SiteSettings; page: "home" | "catalog" | "how" };
+const { settings, page } = Astro.props;
+const isHome = page === "home";
+const isCatalog = page === "catalog";
+const contactUrl = `https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent("Hola ROCK GAMES, quiero consultar por un juego digital.")}`;
+---
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0e0b" />
+    <meta name="description" content={isHome ? "ROCK GAMES: juegos digitales para PlayStation, Xbox y Nintendo. Descubre destacados, ofertas y consulta por WhatsApp." : isCatalog ? "Explora el catálogo de juegos digitales de ROCK GAMES. Filtra por consola, género y novedades." : "Descubre cómo comprar juegos digitales en ROCK GAMES: compatibilidad, precio, pago y entrega explicados antes de comprar."} />
+    <link rel="icon" href="/assets/rock-games-logo.png" type="image/png" />
+    <title>{isHome ? "ROCK GAMES — Juegos digitales para tu consola" : isCatalog ? "Catálogo completo — ROCK GAMES" : "Cómo funciona — ROCK GAMES"}</title>
+  </head>
+  <body class={isHome ? "home-page" : isCatalog ? "catalog-page" : "how-page-body"}>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="ROCK GAMES, inicio"><img src="/assets/rock-games-logo.png" alt="" /><span>ROCK <small>GAMES</small></span></a>
+      <nav class="main-nav" id="main-navigation" aria-label="Navegación principal"><a href="/" aria-current={isHome ? "page" : undefined}>Inicio</a><a href="/catalogo" aria-current={isCatalog ? "page" : undefined}>Catálogo</a><a href="/como-funciona" aria-current={page === "how" ? "page" : undefined}>Cómo funciona</a><a href="/#ofertas">Ofertas</a></nav>
+      <WishlistNav client:load />
+      <button class="mobile-menu" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="main-navigation"><span></span><span></span></button>
+    </header>
+    <main><slot /></main>
+    <footer class="site-footer"><div class="footer-brand"><a class="brand" href="/"><img src={settings.logoPath} alt="" /><span>ROCK <small>GAMES</small></span></a><p>Juegos digitales para tu consola.</p></div><nav aria-label="Enlaces del pie"><a href="/catalogo">Catálogo</a><a href="/como-funciona">Cómo funciona</a><a href={contactUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a></nav><div class="footer-social"><span>Síguenos</span>{settings.socialLinks.facebook && <a href={settings.socialLinks.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook"><BrandIcon name="Facebook" /></a>}{settings.socialLinks.youtube && <a href={settings.socialLinks.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube"><BrandIcon name="YouTube" /></a>}{!settings.socialLinks.facebook && !settings.socialLinks.youtube && <small>Perfiles por configurar</small>}</div><small>© {new Date().getFullYear()} ROCK GAMES</small></footer>
+    <button class="back-to-top" type="button" aria-label="Volver arriba"><span aria-hidden="true">↑</span><small>Volver arriba</small></button>
+    <script>
+      const toggle = document.querySelector<HTMLButtonElement>(".mobile-menu");
+      const nav = document.querySelector<HTMLElement>(".main-nav");
+      toggle?.addEventListener("click", () => { const open = nav?.classList.toggle("open") ?? false; toggle.setAttribute("aria-expanded", String(open)); });
+      nav?.querySelectorAll("a").forEach(a => a.addEventListener("click", () => { nav.classList.remove("open"); toggle?.setAttribute("aria-expanded", "false"); }));
+      const backTop = document.querySelector<HTMLButtonElement>(".back-to-top");
+      const updateBackTop = () => backTop?.classList.toggle("is-visible", window.scrollY > 560);
+      window.addEventListener("scroll", updateBackTop, { passive: true });
+      updateBackTop();
+      backTop?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
+    </script>
+    <script is:inline define:vars={{ analyticsId: settings.analyticsId }}>
+      if (/^G-[A-Z0-9]+$/.test(analyticsId)) {
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+        window.gtag("js", new Date());
+        window.gtag("config", analyticsId);
+        const script = document.createElement("script");
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${analyticsId}`;
+        document.head.append(script);
+      }
+    </script>
+  </body>
+</html>

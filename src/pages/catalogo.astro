@@ -1,0 +1,11 @@
+---
+import SiteLayout from "../components/SiteLayout.astro";
+import Catalog from "../components/Catalog";
+import { getCatalogPageData } from "../lib/data";
+
+const catalog = await getCatalogPageData();
+---
+<SiteLayout settings={catalog.settings} page="catalog">
+  <div class="catalog-page-intro"><p class="section-kicker">ROCK GAMES / CATÁLOGO</p><h1>Encuentra tu <strong>próximo juego.</strong></h1><p>Elige tu consola, filtra el catálogo y guarda los juegos que te interesan. Te confirmamos disponibilidad antes de comprar.</p></div>
+  <Catalog client:load mode="full" games={catalog.games} platformFamilies={catalog.platformFamilies} genres={catalog.genres} currency={catalog.settings.currency} whatsappNumber={catalog.settings.whatsappNumber} />
+</SiteLayout>

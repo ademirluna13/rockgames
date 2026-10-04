@@ -1,0 +1,17 @@
+---
+import SiteLayout from "../components/SiteLayout.astro";
+import HeroScroll from "../components/HeroScroll.astro";
+import Catalog from "../components/Catalog";
+import EditorialSections from "../components/EditorialSections.astro";
+import { getHomePageData } from "../lib/data";
+
+const home = await getHomePageData();
+const waUrl = `https://wa.me/${home.settings.whatsappNumber}?text=${encodeURIComponent("Hola ROCK GAMES, quiero saber qué ofertas tienen disponibles.")}`;
+const contactUrl = `https://wa.me/${home.settings.whatsappNumber}?text=${encodeURIComponent("Hola ROCK GAMES, busco un juego que no aparece en el catálogo.")}`;
+---
+<SiteLayout settings={home.settings} page="home">
+  <HeroScroll hero={home.hero} />
+  <div class="platform-marquee" aria-label="Plataformas disponibles"><div><span>PlayStation</span><i>·</i><span>Xbox</span><i>·</i><span>Nintendo Switch</span><i>·</i><span>Nintendo Switch 2</span></div></div>
+  <Catalog client:load mode="home" games={home.games} featuredGames={home.featured} portals={home.portals} platformFamilies={home.platformFamilies} genres={home.genres} recommendationMoods={home.recommendationMoods} currency={home.settings.currency} whatsappNumber={home.settings.whatsappNumber} />
+  <EditorialSections data={home} waUrl={waUrl} contactUrl={contactUrl} />
+</SiteLayout>
