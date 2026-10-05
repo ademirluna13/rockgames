@@ -1,0 +1,24 @@
+---
+import AdminLayout from "../../components/AdminLayout.astro";
+import AdminMediaPicker from "../../components/AdminMediaPicker.astro";
+import { getMediaUsage, listAdminMedia } from "../../lib/admin/media";
+const client = Astro.locals.adminClient!;
+const { data: settings, error } = await client.from("site_settings").select("brand_name,country,currency,whatsapp_number,facebook_url,youtube_url,email,analytics_id,logo_path").eq("id", 1).maybeSingle();
+if (error) throw new Error("No se pudo cargar la configuración del sitio.");
+if (!settings) throw new Error("No existe site_settings.id=1.");
+const [media, usage] = await Promise.all([listAdminMedia(client), getMediaUsage(client)]);
+if (settings.logo_path && !media.some((item) => item.path === settings.logo_path)) media.unshift({ path: settings.logo_path, fileName: "Logo actual", folder: "", contentType: "image/png", size: null, createdAt: null, width: null, height: null, publicUrl: settings.logo_path.startsWith("/") ? settings.logo_path : client.storage.from("public-media").getPublicUrl(settings.logo_path).data.publicUrl });
+---
+<AdminLayout title="Configuración" active="settings">
+  <p class="admin-section-note">Los datos de contacto y marca se muestran en la tienda. Guarda los cambios al terminar.</p>
+  <form method="post" action="/admin/api/actions" class="admin-card">
+    <input type="hidden" name="intent" value="settings_save" /><input type="hidden" name="return_to" value="/admin/settings" />
+    <section class="admin-settings-group"><h2>Negocio</h2><div class="admin-grid three"><label class="admin-field">Nombre de la tienda<input name="brand_name" value={settings.brand_name} required maxlength="120" /></label><label class="admin-field">País<select name="country" required><option value="MX" selected={settings.country === "MX"}>México</option><option value="US" selected={settings.country === "US"}>Estados Unidos</option></select></label><label class="admin-field">Moneda<select name="currency" required><option value="MXN" selected={settings.currency === "MXN"}>Peso mexicano</option><option value="USD" selected={settings.currency === "USD"}>Dólar estadounidense</option></select></label></div></section>
+    <section class="admin-settings-group"><h2>Contacto</h2><div class="admin-grid"><label class="admin-field">WhatsApp <input name="whatsapp_number" value={settings.whatsapp_number ?? ""} inputmode="numeric" pattern="[0-9]{8,15}" maxlength="15" placeholder="5215512345678" /><small class="admin-help">Código de país y número, sin +, espacios ni guiones.</small></label><label class="admin-field">Correo electrónico<input type="email" name="email" value={settings.email ?? ""} maxlength="254" /></label></div></section>
+    <section class="admin-settings-group"><h2>Redes sociales</h2><div class="admin-grid"><label class="admin-field">Facebook<input type="url" name="facebook_url" value={settings.facebook_url ?? ""} maxlength="500" placeholder="https://facebook.com/…" /></label><label class="admin-field">YouTube<input type="url" name="youtube_url" value={settings.youtube_url ?? ""} maxlength="500" placeholder="https://youtube.com/…" /></label></div></section>
+    <section class="admin-settings-group"><h2>Marca</h2><AdminMediaPicker name="logo_path" label="Logo de la tienda" value={settings.logo_path} options={media} usage={usage} /><p class="admin-help">Selecciona un logo ya subido. Para cambiarlo, usa “Subir un logo nuevo” debajo.</p></section>
+    <section class="admin-settings-group"><h2>Analytics</h2><label class="admin-field">ID de Google Analytics<input name="analytics_id" value={settings.analytics_id ?? ""} maxlength="100" placeholder="G-XXXXXXXXXX" /></label><p class="admin-help">Solo pega el ID de medición. No coloques claves privadas aquí.</p></section>
+    <div class="admin-form-actions"><button class="admin-button" type="submit">Guardar cambios</button><a class="admin-button ghost" href="/" target="_blank" rel="noopener noreferrer">Ver sitio ↗</a></div>
+  </form>
+  <form method="post" action="/admin/api/actions" enctype="multipart/form-data" class="admin-card"><input type="hidden" name="intent" value="media_upload" /><input type="hidden" name="target_field" value="logo_path" /><input type="hidden" name="role" value="cover" /><input type="hidden" name="return_to" value="/admin/settings" /><h2>Subir un logo nuevo</h2><p class="admin-section-note">El archivo se ajusta y convierte a WebP automáticamente. SVG no se acepta desde el panel por seguridad.</p><label class="admin-field">Archivo del logo<input type="file" name="file" required accept="image/jpeg,image/png,image/webp,image/avif" /></label><button class="admin-button secondary" type="submit">Subir logo</button></form>
+</AdminLayout>

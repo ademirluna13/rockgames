@@ -1,0 +1,38 @@
+---
+import AdminLayout from "../../components/AdminLayout.astro";
+const client = Astro.locals.adminClient!;
+const [{ data: rows, error }, { data: families, error: familyError }] = await Promise.all([
+  client.from("testimonials").select("id,alias,text,platform_family_id,source,date,rating,consented_at,published,sort_order").order("sort_order"),
+  client.from("platform_families").select("id,name").eq("is_active", true).order("sort_order"),
+]);
+if (error || familyError) throw new Error("No se pudieron cargar los testimonios.");
+---
+<AdminLayout title="Testimonios" active="testimonials">
+  <p class="admin-section-note">Solo publica referencias con consentimiento registrado. Los nuevos testimonios permanecen ocultos por defecto.</p>
+  {(rows ?? []).map((row) => <form method="post" action="/admin/api/actions" class="admin-card">
+    <input type="hidden" name="intent" value="testimonial_save" /><input type="hidden" name="id" value={row.id} /><input type="hidden" name="return_to" value="/admin/testimonials" />
+    <div class="admin-grid"><label class="admin-field">Alias<input name="alias" value={row.alias} required maxlength="100" /></label><label class="admin-field">Plataforma<select name="platform_family_id"><option value="">Sin especificar</option>{(families ?? []).map((family) => <option value={family.id} selected={family.id === row.platform_family_id}>{family.name}</option>)}</select></label></div>
+    <label class="admin-field">Comentario<textarea name="text" required maxlength="2000" rows="3">{row.text}</textarea></label>
+    <div class="admin-grid three"><label class="admin-field">Origen<input name="source" value={row.source ?? ""} maxlength="200" placeholder="WhatsApp, Google…" /></label><label class="admin-field">Fecha<input type="date" name="date" value={row.date ?? ""} /></label><label class="admin-field">Calificación<select name="rating"><option value="">Sin calificación</option>{[1,2,3,4,5].map((value) => <option value={value} selected={row.rating === value}>{value} / 5</option>)}</select></label></div>
+    <div class="admin-grid"><div><label class="admin-check"><input type="checkbox" name="consented" checked={Boolean(row.consented_at)} data-consent-toggle />Consentimiento confirmado</label><label class="admin-check"><input type="checkbox" name="published" checked={row.published} disabled={!row.consented_at} data-publish-toggle />Publicado</label><p class="admin-help">Solo publica referencias con permiso confirmado.</p></div><details class="admin-advanced"><summary>Más opciones</summary><label class="admin-field">Orden de aparición<input type="number" name="sort_order" value={row.sort_order} min="0" max="99999" /></label></details></div>
+    <div class="admin-form-actions"><button class="admin-button secondary" type="submit">Guardar</button></div>
+  </form>)}
+  {(rows ?? []).length === 0 && <div class="admin-card admin-empty"><h2>Aún no hay testimonios</h2><p>Agrega una referencia real con permiso del cliente. No se mostrarán testimonios sin consentimiento.</p><a class="admin-button ghost small" href="#agregar">Agregar referencia</a></div>}
+  <form method="post" action="/admin/api/actions" class="admin-card" id="agregar">
+    <input type="hidden" name="intent" value="testimonial_save" /><input type="hidden" name="return_to" value="/admin/testimonials" /><h2>Agregar referencia real</h2>
+    <div class="admin-grid"><label class="admin-field">Alias<input name="alias" required maxlength="100" /></label><label class="admin-field">Plataforma<select name="platform_family_id"><option value="">Sin especificar</option>{(families ?? []).map((family) => <option value={family.id}>{family.name}</option>)}</select></label></div>
+    <label class="admin-field">Comentario<textarea name="text" required maxlength="2000" rows="3"></textarea></label>
+    <div class="admin-grid three"><label class="admin-field">Origen<input name="source" maxlength="200" /></label><label class="admin-field">Fecha<input type="date" name="date" /></label><label class="admin-field">Calificación<select name="rating"><option value="">Sin calificación</option>{[1,2,3,4,5].map((value) => <option value={value}>{value} / 5</option>)}</select></label></div>
+    <div class="admin-grid"><div><label class="admin-check"><input type="checkbox" name="consented" data-consent-toggle />Consentimiento confirmado</label><label class="admin-check"><input type="checkbox" name="published" disabled data-publish-toggle />Publicado</label><p class="admin-help">La opción se activa al confirmar que tenemos permiso del cliente.</p></div><details class="admin-advanced"><summary>Más opciones</summary><label class="admin-field">Orden de aparición<input type="number" name="sort_order" value="0" min="0" max="99999" /></label></details></div>
+    <button class="admin-button" type="submit">Agregar testimonio</button>
+  </form>
+  {(rows ?? []).map((row) => <form method="post" action="/admin/api/actions" data-confirm="¿Eliminar esta referencia?"><input type="hidden" name="intent" value="testimonial_delete" /><input type="hidden" name="return_to" value="/admin/testimonials" /><input type="hidden" name="id" value={row.id} /><button class="admin-button danger small" type="submit">Eliminar {row.alias}</button></form>)}
+  <script>
+    document.querySelectorAll<HTMLInputElement>("[data-consent-toggle]").forEach((consent) => consent.addEventListener("change", () => {
+      const published = consent.form?.querySelector<HTMLInputElement>("[data-publish-toggle]");
+      if (!published) return;
+      published.disabled = !consent.checked;
+      if (!consent.checked) published.checked = false;
+    }));
+  </script>
+</AdminLayout>

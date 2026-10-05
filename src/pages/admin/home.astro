@@ -1,0 +1,59 @@
+---
+import AdminLayout from "../../components/AdminLayout.astro";
+import AdminMediaPicker from "../../components/AdminMediaPicker.astro";
+import { getMediaUsage, listAdminMedia } from "../../lib/admin/media";
+const client = Astro.locals.adminClient!;
+const { data: sections, error } = await client.from("site_sections").select("id,key,eyebrow,title,highlighted_text,description,media_path,poster_path,media_alt,cta_label,cta_url,is_visible,sort_order").order("sort_order");
+if (error) throw new Error("No se pudieron cargar las secciones de Home.");
+const [media, usage] = await Promise.all([listAdminMedia(client), getMediaUsage(client)]);
+for (const section of sections ?? []) {
+  for (const path of [section.media_path, section.poster_path]) {
+    if (path?.startsWith("/assets/") && !media.some((item) => item.path === path)) {
+      const extension = path.split(".").pop()?.toLowerCase();
+      const contentType = extension === "webp" ? "image/webp" : extension === "avif" ? "image/avif" : extension === "jpg" || extension === "jpeg" ? "image/jpeg" : "image/png";
+      media.unshift({ path, fileName: "Archivo actual", folder: "assets", contentType, size: null, createdAt: null, width: null, height: null, publicUrl: path });
+    }
+  }
+}
+const config: Record<string, { label: string; fields: string[] }> = {
+  hero: { label: "Portada principal", fields: ["eyebrow", "title", "highlighted_text", "description", "media_path", "poster_path", "cta_label", "cta_url"] },
+  platforms: { label: "Plataformas", fields: ["eyebrow", "title", "description", "cta_label", "cta_url"] },
+  featured: { label: "En portada", fields: ["eyebrow", "title", "highlighted_text", "description", "cta_label", "cta_url"] },
+  best_sellers: { label: "Más vendidos", fields: ["eyebrow", "title", "highlighted_text", "description"] },
+  offers: { label: "Ofertas", fields: ["title", "highlighted_text", "description", "media_path", "cta_label", "cta_url"] },
+  upcoming: { label: "Próximamente", fields: ["title", "highlighted_text", "description"] },
+  how_it_works: { label: "Cómo funciona", fields: ["eyebrow", "title", "highlighted_text", "description", "media_path", "cta_label", "cta_url"] },
+  trust: { label: "Confianza", fields: ["eyebrow", "title", "highlighted_text", "description", "media_path"] },
+  testimonials: { label: "Testimonios", fields: ["title", "highlighted_text"] },
+  final_cta: { label: "Cierre", fields: ["eyebrow", "title", "highlighted_text", "description", "media_path", "poster_path", "cta_label", "cta_url"] },
+};
+const textLabels: Record<string, string> = { eyebrow: "Texto pequeño", title: "Título", highlighted_text: "Texto destacado", description: "Descripción", cta_label: "Texto del botón", cta_url: "Destino del botón" };
+---
+<AdminLayout title="Home" active="home">
+  <p class="admin-section-note">Edita solo los textos y recursos que aparecen en cada bloque. Las selecciones de juegos se gestionan desde En portada, Más vendidos y Ofertas.</p>
+  {Object.entries(config).map(([key, details]) => {
+    const section = sections?.find((item) => item.key === key);
+    return section ? <section class="admin-card" id={key}>
+      <div class="admin-section-heading"><div><p class="admin-eyebrow">CONTENIDO DEL SITIO</p><h2>{details.label}</h2></div><a class="admin-button ghost small" href={`/#${key === "hero" ? "inicio" : key === "featured" ? "en-portada" : "catalogo-list"}`} target="_blank" rel="noopener noreferrer">Ver sitio ↗</a></div>
+      <form method="post" action="/admin/api/actions">
+        <input type="hidden" name="intent" value="section_save" /><input type="hidden" name="key" value={key} /><input type="hidden" name="return_to" value={`/admin/home#${key}`} />
+        <div class="admin-grid">{details.fields.filter((field) => !["media_path", "poster_path"].includes(field)).map((field) => {
+          const value = section[field as keyof typeof section] ?? "";
+          const label = textLabels[field];
+          if (field === "description") return <label class="admin-field">{label}<textarea name={field} maxlength="2000" rows="3">{value}</textarea></label>;
+          if (field === "cta_url") return <label class="admin-field">{label}<input name={field} value={value} maxlength="500" placeholder="/catalogo" /></label>;
+          return <label class="admin-field">{label}<input name={field} value={value} maxlength={field === "eyebrow" ? "160" : field === "cta_label" ? "120" : "200"} /></label>;
+        })}</div>
+        {(details.fields.includes("media_path") || details.fields.includes("poster_path")) && <div class="admin-grid">
+          {details.fields.includes("media_path") && <div><AdminMediaPicker name="media_path" label={key === "hero" || key === "final_cta" ? "Video o imagen principal" : "Imagen"} value={section.media_path} options={media} usage={usage} allowVideo={key === "hero"} /><label class="admin-field">Descripción de la imagen<input name="media_alt" value={section.media_alt ?? ""} maxlength="300" /><small class="admin-help">Describe brevemente lo que se muestra.</small></label></div>}
+          {details.fields.includes("poster_path") && <div><AdminMediaPicker name="poster_path" label="Imagen de respaldo" value={section.poster_path} options={media} usage={usage} /><p class="admin-help">Se muestra mientras carga el video o si el visitante reduce las animaciones.</p></div>}
+        </div>}
+        <details class="admin-advanced"><summary>Más opciones</summary><label class="admin-field">Orden de esta sección<input type="number" name="sort_order" value={section.sort_order} min="0" max="99999" /></label></details>
+        <label class="admin-check"><input type="checkbox" name="is_visible" checked={section.is_visible} />Mostrar en el sitio</label>
+        <div class="admin-form-actions"><button class="admin-button secondary" type="submit">Guardar cambios</button></div>
+      </form>
+      {details.fields.includes("media_path") && <form method="post" action="/admin/api/actions" enctype="multipart/form-data" class="admin-upload-inline"><input type="hidden" name="intent" value="media_upload" /><input type="hidden" name="return_to" value={`/admin/home#${key}`} /><input type="hidden" name="section_key" value={key} /><input type="hidden" name="target_field" value="media_path" />{key === "hero" ? <label class="admin-field">Formato<select name="role"><option value="hero">Imagen</option><option value="video">Video MP4</option></select></label> : <input type="hidden" name="role" value="hero" />}<label class="admin-field">Subir archivo<input type="file" name="file" required accept={key === "hero" ? "image/jpeg,image/png,image/webp,image/avif,video/mp4" : "image/jpeg,image/png,image/webp,image/avif"} /></label><button class="admin-button ghost small" type="submit">Subir y usar</button></form>}
+      {details.fields.includes("poster_path") && <form method="post" action="/admin/api/actions" enctype="multipart/form-data" class="admin-upload-inline"><input type="hidden" name="intent" value="media_upload" /><input type="hidden" name="return_to" value={`/admin/home#${key}`} /><input type="hidden" name="section_key" value={key} /><input type="hidden" name="target_field" value="poster_path" /><input type="hidden" name="role" value="poster" /><label class="admin-field">Subir imagen de respaldo<input type="file" name="file" required accept="image/jpeg,image/png,image/webp,image/avif" /></label><button class="admin-button ghost small" type="submit">Subir y usar</button></form>}
+    </section> : <div class="admin-card"><h2>{details.label}</h2><p class="admin-section-note">Este bloque no está disponible para editar.</p></div>;
+  })}
+</AdminLayout>

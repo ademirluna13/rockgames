@@ -39,8 +39,6 @@ const bestsellers = data.bestsellers;
 
   <section class="trust-section" aria-label="Compra con claridad"><div class="trust-visual"><img src="/assets/featured-war-v1.webp" alt="" loading="lazy" decoding="async" /><div><p class="section-kicker">Compra digital</p><h2>Sin dudas antes<br /><strong>de pagar.</strong></h2></div></div><div class="trust-copy"><p>Te confirmamos la versión, la consola compatible, el precio y la forma de entrega por WhatsApp. Así sabes exactamente qué vas a recibir.</p><div class="trust-checklist"><span>01 <strong>Versión y consola compatible</strong></span><span>02 <strong>Precio confirmado</strong></span><span>03 <strong>Entrega digital explicada</strong></span><span>04 <strong>Atención directa por WhatsApp</strong></span></div></div></section>
 
-  <section class="social-section"><div class="editorial-head"><div><p class="section-kicker">ENCUÉNTRANOS</p><h2>Sigue a <strong>ROCK GAMES.</strong></h2></div><p>Novedades, juegos y respuestas en un solo lugar.</p></div><div class="social-grid"><div class="social-item"><BrandIcon name="Facebook" /><strong>Facebook</strong><p>Ofertas y novedades.</p>{data.settings.socialLinks.facebook ? <a href={data.settings.socialLinks.facebook} target="_blank" rel="noopener noreferrer">Visitar perfil ↗</a> : <span>Perfil por configurar</span>}</div><div class="social-item"><BrandIcon name="YouTube" /><strong>YouTube</strong><p>Contenido y recomendaciones.</p>{data.settings.socialLinks.youtube ? <a href={data.settings.socialLinks.youtube} target="_blank" rel="noopener noreferrer">Ver canal ↗</a> : <span>Canal por configurar</span>}</div><a class="social-item social-item-live" href={contactUrl} target="_blank" rel="noopener noreferrer"><BrandIcon name="WhatsApp" /><strong>WhatsApp</strong><p>Preguntas, disponibilidad y compras.</p><span>Iniciar conversación ↗</span></a></div></section>
-
   <section class="closing-section" id="contacto"><img class="closing-backdrop" src="/assets/featured-halo-v1.webp" alt="" loading="lazy" decoding="async" /><p class="section-kicker">¿No aparece en el catálogo?</p><h2><span>Dinos qué juego</span><br /><strong>estás buscando.</strong></h2><p class="closing-description">Te ayudamos a encontrar la opción para tu consola.</p><a href={contactUrl} target="_blank" rel="noopener noreferrer">Escríbenos <span>↗</span></a></section>
 </div>
 
@@ -67,7 +65,6 @@ const bestsellers = data.bestsellers;
         reveal(".steps article", ".steps", .1);
         reveal(".trust-visual, .trust-copy", ".trust-section", .14);
         reveal(".reference-quote, .references-empty", ".references-section", .1);
-        reveal(".social-item", ".social-section", .1);
         reveal(".closing-section > *:not(.closing-backdrop)", ".closing-section", .1);
         gsap.to(".closing-backdrop", { yPercent: 7, ease: "none", scrollTrigger: { trigger: ".closing-section", start: "top bottom", end: "bottom top", scrub: .8 } });
       }, scope);

@@ -1,0 +1,26 @@
+---
+import AdminLayout from "../../components/AdminLayout.astro";
+const client = Astro.locals.adminClient!;
+const counts = await Promise.all([
+  client.from("games").select("id", { count: "exact", head: true }).eq("is_published", true),
+  client.from("games").select("id", { count: "exact", head: true }).eq("is_published", false),
+  client.from("game_variants").select("id", { count: "exact", head: true }).eq("is_active", true),
+  client.from("game_variants").select("id", { count: "exact", head: true }).or("availability.eq.unavailable,stock_quantity.eq.0"),
+  client.from("collections").select("id", { count: "exact", head: true }).eq("is_active", true),
+  client.from("testimonials").select("id", { count: "exact", head: true }).eq("published", false),
+  client.from("game_variants").select("id", { count: "exact", head: true }).in("availability", ["upcoming", "preorder"]).eq("is_active", true),
+]);
+if (counts.some((result) => result.error)) throw new Error("No se pudieron cargar las métricas del CMS.");
+const labels = ["Juegos publicados", "Juegos borrador", "Variantes activas", "Agotados / no disponibles", "Colecciones activas", "Testimonios pendientes", "Próximos lanzamientos"];
+---
+<AdminLayout title="Dashboard" active="dashboard">
+  <div class="admin-grid four">
+    {counts.map((result, index) => <div class="admin-stat"><strong>{result.count ?? 0}</strong><span>{labels[index]}</span></div>)}
+  </div>
+  <div class="admin-card" style="margin-top:22px">
+    <h2>Acciones rápidas</h2>
+    <p class="admin-section-note">El contenido publicado se refleja en la tienda al guardarlo. Puedes dejar un juego como borrador mientras completas sus datos.</p>
+    <div class="admin-inline"><a class="admin-button" href="/admin/games/new">Crear juego</a><a class="admin-button secondary" href="/admin/media">Subir imagen</a><a class="admin-button ghost" href="/admin/collections?collection=featured">Editar En portada</a><a class="admin-button ghost" href="/admin/collections?collection=featured-offers">Añadir oferta</a>{Astro.locals.admin?.role === "owner" && <><a class="admin-button ghost" href="/admin/home#hero">Editar portada</a><a class="admin-button ghost" href="/admin/settings">Configurar WhatsApp</a></>}</div>
+  </div>
+  {((counts[0].count ?? 0) + (counts[1].count ?? 0) === 0) && <div class="admin-card admin-empty"><h2>Tu catálogo está listo para empezar</h2><p>Agrega un juego y sus versiones para que aparezca en la tienda.</p><a class="admin-button" href="/admin/games/new">Crear primer juego</a></div>}
+</AdminLayout>

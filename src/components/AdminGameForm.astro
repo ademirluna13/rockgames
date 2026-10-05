@@ -1,0 +1,45 @@
+---
+type Choice = { id: string; name: string };
+type Game = { id: string; title: string; slug: string; short_description: string; description: string; is_published: boolean };
+const { game, genres, tags, selectedGenres, selectedTags, hasActiveVariants = false, readyToPublish = false, missingForPublish = [] } = Astro.props as {
+  game?: Game; genres: Choice[]; tags: Choice[]; selectedGenres: string[]; selectedTags: string[]; hasActiveVariants?: boolean; readyToPublish?: boolean; missingForPublish?: string[];
+};
+const returnTo = game ? `/admin/games/${game.id}` : "/admin/games/new";
+---
+<form method="post" action="/admin/api/actions" class="admin-card" data-game-form>
+  <input type="hidden" name="intent" value="game_save" /><input type="hidden" name="return_to" value={returnTo} />
+  {game && <input type="hidden" name="id" value={game.id} />}
+  <h2>Información del juego</h2>
+  <label class="admin-field">Nombre del juego<input name="title" value={game?.title ?? ""} required maxlength="200" autocomplete="off" /></label>
+  <label class="admin-field">Descripción corta<textarea name="short_description" maxlength="500" rows="2">{game?.short_description ?? ""}</textarea></label>
+  <label class="admin-field">Descripción completa<textarea name="description" maxlength="10000" rows="5">{game?.description ?? ""}</textarea></label>
+  <div class="admin-grid">
+    <div><p class="admin-help">Géneros · el primero seleccionado será el principal</p>{genres.length ? genres.map((genre) => <label class="admin-check"><input type="checkbox" name="genre_ids" value={genre.id} checked={selectedGenres.includes(genre.id)} />{genre.name}</label>) : <p class="admin-help">No hay géneros disponibles.</p>}</div>
+    <div><p class="admin-help">Etiquetas</p>{tags.length ? tags.map((tag) => <label class="admin-check"><input type="checkbox" name="tag_ids" value={tag.id} checked={selectedTags.includes(tag.id)} />{tag.name}</label>) : <p class="admin-help">No hay etiquetas disponibles.</p>}</div>
+  </div>
+  <details class="admin-advanced"><summary>Opciones avanzadas</summary>
+    <label class="admin-field">Enlace del juego<input name="slug" value={game?.slug ?? ""} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="120" placeholder="Se genera desde el nombre" data-game-slug /></label>
+    <p class="admin-help">Se usa en el enlace público del juego. Puedes ajustarlo aquí.</p>
+  </details>
+  <p class="admin-help">El precio, la consola y la disponibilidad se configuran en “Precios y disponibilidad”.</p>
+  {!game && <p class="admin-help">Este paso guarda el juego como borrador. Después podrás subir su portada, agregar versiones y publicarlo.</p>}
+  {game && !game.is_published && !hasActiveVariants && <p class="admin-help">Agrega al menos una versión activa con disponibilidad antes de publicar.</p>}
+  {game && !game.is_published && !readyToPublish && <p class="admin-help">Para publicar faltan: {missingForPublish.join(", ")}. Guarda esta ficha y completa los pendientes.</p>}
+  <div class="admin-form-actions">
+    {game && <button class="admin-button secondary" type="submit" name="publish_state" value="false">Guardar como borrador</button>}
+    {game && <button class="admin-button" type="submit" name="publish_state" value="true" disabled={!game.is_published && !readyToPublish}>{game.is_published ? "Guardar y mantener publicado" : "Publicar juego"}</button>}
+    {!game && <button class="admin-button" type="submit" name="publish_state" value="false">Guardar y continuar</button>}
+    <a class="admin-button ghost" href="/admin/games">Cancelar</a>
+  </div>
+</form>
+<script>
+  const form = document.querySelector<HTMLFormElement>("[data-game-form]");
+  const title = form?.querySelector<HTMLInputElement>('input[name="title"]');
+  const slug = form?.querySelector<HTMLInputElement>("[data-game-slug]");
+  let slugEdited = Boolean(slug?.value);
+  slug?.addEventListener("input", () => { slugEdited = true; });
+  title?.addEventListener("input", () => {
+    if (slugEdited || !slug) return;
+    slug.value = title.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 120);
+  });
+</script>

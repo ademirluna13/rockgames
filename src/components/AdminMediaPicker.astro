@@ -1,0 +1,47 @@
+---
+import type { AdminMediaObject } from "../lib/admin/media";
+import { humanMediaName } from "../lib/admin/media";
+const { name, label, value, options, usage, allowVideo = false } = Astro.props as {
+  name: string; label: string; value: string | null; options: AdminMediaObject[]; usage?: Map<string, string[]>; allowVideo?: boolean;
+};
+const eligible = options.filter((item) => ["image/jpeg", "image/png", "image/webp", "image/avif"].includes(item.contentType) || (allowVideo && item.contentType === "video/mp4"));
+const current = eligible.find((item) => item.path === value);
+---
+<div class="admin-media-picker" data-media-picker>
+  <span class="admin-field-label">{label}</span>
+  <input type="hidden" name={name} value={value ?? ""} data-media-value />
+  <div class="admin-media-picker-actions"><details class="admin-advanced"><summary>{current ? "Cambiar archivo" : "Elegir de la biblioteca"}</summary>
+    <div class="admin-media-picker-tools"><input type="search" placeholder="Buscar archivos" aria-label="Buscar archivos de medios" data-media-search /><div class="admin-filter-buttons"><button type="button" class="admin-button ghost small active" data-kind-filter="all">Todos</button><button type="button" class="admin-button ghost small" data-kind-filter="image">Imágenes</button>{allowVideo && <button type="button" class="admin-button ghost small" data-kind-filter="video">Videos</button>}<button type="button" class="admin-button ghost small" data-kind-filter="game">De juegos</button><button type="button" class="admin-button ghost small" data-kind-filter="section">De Home</button></div></div>
+    {eligible.length ? <div class="admin-media-choice-grid">{eligible.map((item) => <button type="button" class:list={["admin-media-choice", { selected: item.path === value }]} data-media-choice data-path={item.path} data-kind={item.contentType.startsWith("video/") ? "video" : "image"} data-location={item.path.startsWith("games/") ? "game" : item.path.startsWith("sections/") ? "section" : "library"} data-search={humanMediaName(item, usage?.get(item.path)).toLowerCase()} data-url={item.publicUrl} aria-pressed={item.path === value}>
+      <span class="admin-media-choice-preview">{item.contentType.startsWith("video/") ? <video src={item.publicUrl} muted preload="metadata" /> : <img src={item.publicUrl} alt="" loading="lazy" />}</span><span>{humanMediaName(item, usage?.get(item.path))}</span>
+    </button>)}</div> : <p class="admin-empty">Todavía no hay archivos compatibles. <a href="/admin/media" target="_blank" rel="noopener noreferrer">Sube uno a la biblioteca ↗</a></p>}
+  </details><a class="admin-button ghost small" href="/admin/media" target="_blank" rel="noopener noreferrer">Subir nuevo ↗</a></div>
+  <span class="admin-media-picker-preview" data-media-preview>
+    {current && (current.contentType.startsWith("video/") ? <video src={current.publicUrl} muted controls preload="metadata" /> : <img src={current.publicUrl} alt="Vista previa del archivo elegido" loading="lazy" />)}
+    {!current && <span>Elige un archivo de la biblioteca.</span>}
+  </span>
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>("[data-media-picker]").forEach((picker) => {
+    const value = picker.querySelector<HTMLInputElement>("[data-media-value]");
+    const preview = picker.querySelector<HTMLElement>("[data-media-preview]");
+    const choices = [...picker.querySelectorAll<HTMLButtonElement>("[data-media-choice]")];
+    const search = picker.querySelector<HTMLInputElement>("[data-media-search]");
+    let filter = "all";
+    const updateFilter = () => choices.forEach((choice) => { choice.hidden = (filter !== "all" && choice.dataset.kind !== filter && choice.dataset.location !== filter) || !choice.dataset.search?.includes(search?.value.toLowerCase().trim() ?? ""); });
+    search?.addEventListener("input", updateFilter);
+    picker.querySelectorAll<HTMLButtonElement>("[data-kind-filter]").forEach((button) => button.addEventListener("click", () => { filter = button.dataset.kindFilter ?? "all"; picker.querySelectorAll("[data-kind-filter]").forEach((candidate) => candidate.classList.toggle("active", candidate === button)); updateFilter(); }));
+    choices.forEach((choice) => choice.addEventListener("click", () => {
+      if (!value || !preview) return;
+      value.value = choice.dataset.path ?? "";
+      value.dispatchEvent(new Event("change", { bubbles: true }));
+      choices.forEach((other) => { const selected = other === choice; other.classList.toggle("selected", selected); other.setAttribute("aria-pressed", String(selected)); });
+      preview.replaceChildren();
+      const element = document.createElement(choice.dataset.kind === "video" ? "video" : "img");
+      element.src = choice.dataset.url ?? "";
+      if (element instanceof HTMLVideoElement) { element.controls = true; element.muted = true; }
+      if (element instanceof HTMLImageElement) element.alt = "Vista previa del archivo elegido";
+      preview.append(element);
+    }));
+  });
+</script>

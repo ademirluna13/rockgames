@@ -1,0 +1,144 @@
+---
+import AdminLayout from "../../../components/AdminLayout.astro";
+import AdminGameForm from "../../../components/AdminGameForm.astro";
+import AdminVariantForm from "../../../components/AdminVariantForm.astro";
+import AdminVariantGroup from "../../../components/AdminVariantGroup.astro";
+import { getPublicationReadiness } from "../../../lib/admin/game-list";
+const client = Astro.locals.adminClient!;
+const id = Astro.params.id ?? "";
+if (!/^[0-9a-f-]{36}$/i.test(id)) return Astro.redirect("/admin/games?error=invalid");
+const [gameResult, variantResult, genreResult, tagResult, platformResult, mediaResult] = await Promise.all([
+  client.from("games").select("id,title,slug,short_description,description,is_published,game_genres(genre_id),game_tags(tag_id)").eq("id", id).maybeSingle(),
+  client.from("game_variants").select("id,platform_id,version_key,version_label,account_type,price,compare_at_price,availability,release_date,new_until,stock_quantity,is_active,platforms(name)").eq("game_id", id).order("created_at"),
+  client.from("genres").select("id,name").eq("is_active", true).order("name"),
+  client.from("tags").select("id,name").eq("is_active", true).order("name"),
+  client.from("platforms").select("id,name").eq("is_active", true).order("sort_order"),
+  client.from("game_media").select("id,game_variant_id,bucket,storage_path,role,alt_text,sort_order").eq("game_id", id).order("sort_order"),
+]);
+if ([gameResult, variantResult, genreResult, tagResult, platformResult, mediaResult].some((result) => result.error)) throw new Error("No se pudo cargar el juego.");
+const game = gameResult.data;
+if (!game) return Astro.redirect("/admin/games?error=invalid");
+const variants = variantResult.data ?? [];
+const media = mediaResult.data ?? [];
+const hasActiveVariants = variants.some((variant) => variant.is_active && variant.availability !== "unavailable");
+const publication = await getPublicationReadiness(client, id);
+const copyVariant = variants.find((variant) => variant.id === Astro.url.searchParams.get("copy"));
+const oppositeType = copyVariant?.account_type === "secondary" ? "primary" : copyVariant?.account_type === "primary" ? "secondary" : undefined;
+const variantGroups = [...new Map(variants.map((variant) => [`${variant.platform_id}:${variant.version_key}`, { platformId: variant.platform_id, platformName: variant.platforms?.name ?? "Consola", versionKey: variant.version_key, versionLabel: variant.version_label ?? "Estándar" }])).values()];
+const appearanceResult = variants.length
+  ? await client.from("collection_items").select("collections(name)").in("game_variant_id", variants.map((variant) => variant.id))
+  : { data: [], error: null };
+if (appearanceResult.error) throw new Error("No se pudieron revisar las selecciones editoriales del juego.");
+const appearances = [...new Set((appearanceResult.data ?? []).map((item) => item.collections?.name).filter(Boolean))];
+const publicUrl = (path: string) => client.storage.from("public-media").getPublicUrl(path).data.publicUrl;
+const roleLabels: Record<string, string> = { cover: "Portada", hero: "Imagen principal", poster: "Imagen de respaldo", gallery: "Galería", video: "Video principal" };
+const galleries = media.filter((item) => item.role === "gallery");
+---
+<AdminLayout title={game.title} active="games">
+  <div slot="heading-action" class="admin-inline"><a class="admin-button ghost" href="/admin/games">← Juegos</a></div>
+  <div class="admin-inline" style="margin-bottom:18px"><span class:list={["admin-badge", { muted: !game.is_published }]}>{game.is_published ? "Publicado" : "Borrador"}</span><a class="admin-button ghost small" href={`/catalogo#catalogo-list`} target="_blank" rel="noopener noreferrer">Ver catálogo ↗</a></div>
+  <AdminGameForm game={game} hasActiveVariants={hasActiveVariants} readyToPublish={publication.ready} missingForPublish={publication.missing} genres={genreResult.data ?? []} tags={tagResult.data ?? []} selectedGenres={(game.game_genres ?? []).map((item) => item.genre_id)} selectedTags={(game.game_tags ?? []).map((item) => item.tag_id)} />
+  <section>
+    <div class="admin-heading"><div><p class="admin-eyebrow">CATÁLOGO</p><h2 id="variant-groups">Precios y disponibilidad</h2></div></div>
+    <p class="admin-section-note">Administra cada modalidad por separado. Puedes vender una sola; la otra se agrega únicamente cuando lo decidas.</p>
+    {variants.length === 0 && <div class="admin-card admin-empty">Este juego aún no tiene versiones. Agrega una consola y su precio para que se pueda mostrar en el catálogo.</div>}
+    {variantGroups.map((group) => <AdminVariantGroup gameId={game.id} platformId={group.platformId} platformName={group.platformName} versionKey={group.versionKey} versionLabel={group.versionLabel} variants={variants.filter((variant) => variant.platform_id === group.platformId && variant.version_key === group.versionKey)} platforms={platformResult.data ?? []} />)}
+    <details class="admin-advanced" open={Boolean(copyVariant) || variants.length === 0}><summary>Agregar otra consola o edición</summary><AdminVariantForm gameId={game.id} platforms={platformResult.data ?? []} draftPlatformId={copyVariant?.platform_id} draftVersionLabel={copyVariant?.version_label ?? undefined} draftVersionKey={copyVariant?.version_key} draftAccountType={oppositeType} /></details>
+  </section>
+  <section style="margin-top:40px">
+    <div class="admin-heading"><div><p class="admin-eyebrow">IMÁGENES Y VIDEO</p><h2>Portada y galería</h2></div></div>
+    <p class="admin-section-note">Al subir una imagen, se convierte a WebP y se guarda optimizada. JPG, PNG, AVIF y WebP, hasta 20 MB.</p>
+    {media.filter((item) => item.role !== "gallery").map((item) => <article class="admin-media-row">
+      <div class="admin-media-row-preview">{item.role === "video" ? <video src={publicUrl(item.storage_path)} controls preload="metadata" /> : <img src={publicUrl(item.storage_path)} alt={item.alt_text ?? ""} loading="lazy" />}</div>
+      <div class="admin-media-row-content"><strong>{roleLabels[item.role] ?? "Archivo"}</strong>
+        <form method="post" action="/admin/api/actions"><input type="hidden" name="intent" value="media_link" /><input type="hidden" name="return_to" value={`/admin/games/${game.id}`} /><input type="hidden" name="game_id" value={game.id} /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="role" value={item.role} /><input type="hidden" name="storage_path" value={item.storage_path} /><input type="hidden" name="sort_order" value={item.sort_order} /><label class="admin-field">{item.role === "video" ? "Descripción del video" : "Descripción de la imagen"}<input name="alt_text" value={item.alt_text ?? ""} maxlength="300" aria-label="Descripción para accesibilidad" /></label><details class="admin-advanced"><summary>Asignar a una versión específica</summary><label class="admin-field">Versión<select name="game_variant_id"><option value="">Todas las consolas</option>{variants.map((variant) => <option value={variant.id} selected={item.game_variant_id === variant.id}>{variant.platforms?.name} · {variant.version_label ?? "Estándar"}</option>)}</select></label></details><button class="admin-button secondary small" type="submit">Guardar descripción</button></form>
+        <form method="post" action="/admin/api/actions" data-confirm="¿Quitar este archivo del juego? El archivo se conservará en la biblioteca de medios." style="margin-top:8px"><input type="hidden" name="intent" value="media_unlink" /><input type="hidden" name="return_to" value={`/admin/games/${game.id}`} /><input type="hidden" name="game_id" value={game.id} /><input type="hidden" name="id" value={item.id} /><button class="admin-button ghost small" type="submit">Quitar del juego</button></form>
+      </div>
+    </article>)}
+    <form method="post" action="/admin/api/actions" enctype="multipart/form-data" class="admin-card" data-media-upload>
+      <input type="hidden" name="intent" value="media_upload" /><input type="hidden" name="return_to" value={`/admin/games/${game.id}`} /><input type="hidden" name="game_id" value={game.id} />
+      <h3>Subir portada, galería o video</h3><div class="admin-grid">
+        <label class="admin-field">Tipo de archivo<select name="role" data-upload-role><option value="cover">Portada del juego</option><option value="gallery">Galería · varias imágenes</option><option value="hero">Imagen principal</option><option value="poster">Imagen de respaldo</option><option value="video">Video principal · MP4</option></select></label>
+        <label class="admin-field">Elegir archivo<input type="file" name="files" required accept="image/jpeg,image/png,image/webp,image/avif" data-upload-files /></label>
+      </div>
+      <label class="admin-field">Descripción de la imagen <small class="admin-help">Describe brevemente lo que aparece. Ayuda a quienes usan lectores de pantalla.</small><input name="alt_text" maxlength="300" /></label>
+      <div class="admin-form-actions"><button class="admin-button" type="submit">Subir y guardar</button><span class="admin-upload-state" aria-live="polite"></span></div>
+    </form>
+    <h3>Galería <span class="admin-badge muted">{galleries.length}</span></h3>
+    {galleries.length === 0 ? <div class="admin-card admin-empty">Todavía no hay imágenes en la galería.</div> : <div class="admin-gallery-list" data-gallery-list>
+      {galleries.map((item, index) => <article class="admin-gallery-item" draggable="true" data-media-id={item.id} tabindex="0" aria-label={`Imagen ${index + 1} de la galería. Usa las flechas para reordenar.`}>
+        <div class="admin-gallery-thumb"><img src={publicUrl(item.storage_path)} alt={item.alt_text ?? ""} loading="lazy" /></div>
+        <div class="admin-gallery-controls"><span class="admin-gallery-handle" aria-hidden="true">⠿</span><form method="post" action="/admin/api/actions"><input type="hidden" name="intent" value="media_link" /><input type="hidden" name="return_to" value={`/admin/games/${game.id}`} /><input type="hidden" name="game_id" value={game.id} /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="role" value="gallery" /><input type="hidden" name="storage_path" value={item.storage_path} /><input type="hidden" name="sort_order" value={item.sort_order} /><label class="admin-field">Descripción de la imagen<input name="alt_text" value={item.alt_text ?? ""} maxlength="300" /></label><button class="admin-button ghost small" type="submit">Guardar</button></form>
+          <div class="admin-actions"><button class="admin-button ghost small" type="button" data-gallery-move="up" aria-label="Mover imagen hacia arriba" disabled={index === 0}>↑</button><button class="admin-button ghost small" type="button" data-gallery-move="down" aria-label="Mover imagen hacia abajo" disabled={index === galleries.length - 1}>↓</button><form method="post" action="/admin/api/actions" data-confirm="¿Quitar esta imagen de la galería? El archivo se conservará en la biblioteca."><input type="hidden" name="intent" value="media_unlink" /><input type="hidden" name="return_to" value={`/admin/games/${game.id}`} /><input type="hidden" name="game_id" value={game.id} /><input type="hidden" name="id" value={item.id} /><button class="admin-button danger small" type="submit">Quitar</button></form></div>
+        </div>
+      </article>)}
+    </div>}
+    {galleries.length > 1 && <form method="post" action="/admin/api/actions" hidden data-gallery-order-form><input type="hidden" name="intent" value="media_reorder" /><input type="hidden" name="return_to" value={`/admin/games/${game.id}`} /><input type="hidden" name="game_id" value={game.id} /></form>}
+    <p class="admin-help">Arrastra una imagen para ordenar la galería. También puedes usar ↑ y ↓.</p>
+  </section>
+  <section class="admin-card" style="margin-top:40px"><h2>Eliminar juego</h2><p class="admin-section-note">Eliminarlo quitará también {variants.length} {variants.length === 1 ? "versión" : "versiones"} y {media.length} {media.length === 1 ? "referencia de archivo" : "referencias de archivos"}. Los objetos de la biblioteca se conservarán.</p>{appearances.length > 0 && <p class="admin-help">Actualmente aparece en: {appearances.join(", ")}.</p>}<form method="post" action="/admin/api/actions" data-confirm={`¿Eliminar definitivamente ${game.title}? También se quitarán ${variants.length} versiones${appearances.length ? ` y su presencia en ${appearances.join(", ")}` : ""}. Los archivos originales quedarán en la biblioteca.`}><input type="hidden" name="intent" value="game_delete" /><input type="hidden" name="return_to" value={`/admin/games/${game.id}`} /><input type="hidden" name="id" value={game.id} /><button class="admin-button danger" type="submit">Eliminar juego</button></form><form method="post" action="/admin/api/actions" style="margin-top:10px"><input type="hidden" name="intent" value="game_publish" /><input type="hidden" name="return_to" value={`/admin/games/${game.id}`} /><input type="hidden" name="id" value={game.id} /><input type="hidden" name="is_published" value="false" /><button class="admin-button ghost" type="submit">Despublicar en lugar de eliminar</button></form></section>
+  <script>
+    document.querySelectorAll<HTMLFormElement>("[data-variant-group]").forEach((form) => {
+      const secondary = form.elements.namedItem("secondary_price") as HTMLInputElement | null;
+      const primary = form.elements.namedItem("primary_price") as HTMLInputElement | null;
+      const warning = form.querySelector<HTMLElement>("[data-price-warning]");
+      const updateWarning = () => {
+        if (warning) warning.hidden = !(secondary && primary && secondary.value !== "" && primary.value !== "" && Number(secondary.value) >= Number(primary.value));
+      };
+      secondary?.addEventListener("input", updateWarning);
+      primary?.addEventListener("input", updateWarning);
+    });
+    const role = document.querySelector<HTMLSelectElement>("[data-upload-role]");
+    const filesInput = document.querySelector<HTMLInputElement>("[data-upload-files]");
+    const uploadLabel = filesInput?.closest("label");
+    const syncUploadInput = () => {
+      if (!role || !filesInput) return;
+      const video = role.value === "video";
+      filesInput.accept = video ? "video/mp4" : "image/jpeg,image/png,image/webp,image/avif";
+      filesInput.multiple = role.value === "gallery";
+      if (uploadLabel?.firstChild) uploadLabel.firstChild.textContent = video ? "Elegir MP4" : role.value === "gallery" ? "Elegir imágenes" : "Elegir imagen";
+    };
+    role?.addEventListener("change", syncUploadInput);
+    syncUploadInput();
+    document.querySelector<HTMLFormElement>("[data-media-upload]")?.addEventListener("submit", () => {
+      const state = document.querySelector<HTMLElement>(".admin-upload-state");
+      if (state) state.textContent = "Subiendo y optimizando…";
+    });
+
+    const list = document.querySelector<HTMLElement>("[data-gallery-list]");
+    const orderForm = document.querySelector<HTMLFormElement>("[data-gallery-order-form]");
+    let dragging: HTMLElement | null = null;
+    const persistOrder = async () => {
+      if (!list || !orderForm) return;
+      const formData = new FormData(orderForm);
+      list.querySelectorAll<HTMLElement>("[data-media-id]").forEach((item) => formData.append("media_ids", item.dataset.mediaId ?? ""));
+      const response = await fetch(orderForm.action, { method: "POST", body: formData, credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
+      if (response.ok && new URL(response.url).pathname.startsWith("/admin/games/")) window.location.reload();
+      else window.location.reload();
+    };
+    list?.querySelectorAll<HTMLElement>("[data-media-id]").forEach((item) => {
+      item.addEventListener("dragstart", () => { dragging = item; item.classList.add("dragging"); });
+      item.addEventListener("dragend", () => { item.classList.remove("dragging"); dragging = null; });
+      item.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        if (!dragging || dragging === item || !list) return;
+        const bounds = item.getBoundingClientRect();
+        list.insertBefore(dragging, event.clientY < bounds.top + bounds.height / 2 ? item : item.nextSibling);
+      });
+      item.querySelectorAll<HTMLButtonElement>("[data-gallery-move]").forEach((button) => button.addEventListener("click", async () => {
+        const neighbor = button.dataset.galleryMove === "up" ? item.previousElementSibling : item.nextElementSibling;
+        if (!neighbor || !list) return;
+        list.insertBefore(item, button.dataset.galleryMove === "up" ? neighbor : neighbor.nextSibling);
+        await persistOrder();
+      }));
+    });
+    list?.addEventListener("drop", (event) => { event.preventDefault(); void persistOrder(); });
+    list?.addEventListener("keydown", (event) => {
+      if (!(event instanceof KeyboardEvent) || !event.altKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+      const item = (event.target as HTMLElement).closest<HTMLElement>("[data-media-id]");
+      if (!item) return;
+      const neighbor = event.key === "ArrowUp" ? item.previousElementSibling : item.nextElementSibling;
+      if (neighbor && list) { event.preventDefault(); list.insertBefore(item, event.key === "ArrowUp" ? neighbor : neighbor.nextSibling); void persistOrder(); }
+    });
+  </script>
+</AdminLayout>

@@ -44,6 +44,7 @@ type JoinedVariant = {
   platform_id: string;
   version_key: string;
   version_label: string | null;
+  account_type: "primary" | "secondary";
   price: number | string;
   compare_at_price: number | string | null;
   availability: AvailabilityStatus;
@@ -89,7 +90,7 @@ const gameSelect = `
   game_genres(genre_id,is_primary,sort_order,genres(id,slug,name,sort_order,is_active)),
   game_tags(tag_id,tags(id,slug,name,is_active)),
   game_variants(
-    id,game_id,platform_id,version_key,version_label,price,compare_at_price,availability,
+    id,game_id,platform_id,version_key,version_label,account_type,price,compare_at_price,availability,
     release_date,new_until,stock_quantity,is_active,created_at,updated_at,
     platforms(id,family_id,slug,name,sort_order,is_active,platform_families(id,slug,name,sort_order,is_active))
   ),
@@ -146,6 +147,7 @@ export class SupabaseRepository implements RockGamesRepository {
       gameId: row.game_id,
       platformId: row.platform_id,
       versionLabel: row.version_label,
+      accountType: row.account_type,
       price: Number(row.price),
       compareAtPrice: numeric(row.compare_at_price),
       availability: row.availability,
@@ -168,6 +170,7 @@ export class SupabaseRepository implements RockGamesRepository {
       platform: row.platforms.name,
       platformFamilySlug: platformSlug(family.slug),
       versionLabel: row.version_label,
+      accountType: row.account_type,
       price: Number(row.price),
       oldPrice: numeric(row.compare_at_price),
       tag: row.compare_at_price !== null && Number(row.compare_at_price) > Number(row.price)
@@ -188,7 +191,7 @@ export class SupabaseRepository implements RockGamesRepository {
     const tagLinks = (row.game_tags ?? []).filter((link) => link.tags?.is_active);
     const variantViews = (row.game_variants ?? [])
       .filter((variant) => variant.is_active)
-      .sort((a, b) => (a.platforms?.sort_order ?? 999) - (b.platforms?.sort_order ?? 999) || a.version_key.localeCompare(b.version_key))
+      .sort((a, b) => (a.platforms?.sort_order ?? 999) - (b.platforms?.sort_order ?? 999) || a.version_key.localeCompare(b.version_key) || Number(a.price) - Number(b.price))
       .flatMap((variant) => {
         const view = this.variantView(variant, tagLinks[0]?.tags?.name ?? "Disponible");
         return view ? [view] : [];
@@ -206,6 +209,7 @@ export class SupabaseRepository implements RockGamesRepository {
       title: row.title,
       selectionId: current.selectionId,
       variantId: current.id,
+      accountType: current.accountType,
       platform: current.platform,
       platformFamilySlug: current.platformFamilySlug,
       variants: variantViews,
@@ -236,7 +240,7 @@ export class SupabaseRepository implements RockGamesRepository {
     const cards = rows.flatMap((row) => {
       const variants = (row.game_variants ?? [])
         .filter((variant) => variant.is_active)
-        .sort((a, b) => Number(b.availability === "available") - Number(a.availability === "available") || (a.platforms?.sort_order ?? 999) - (b.platforms?.sort_order ?? 999));
+        .sort((a, b) => Number(b.availability === "available") - Number(a.availability === "available") || Number(a.price) - Number(b.price) || (a.platforms?.sort_order ?? 999) - (b.platforms?.sort_order ?? 999));
       const selected = variants.find((variant) => this.variantView(variant)?.available) ?? variants[0];
       return selected ? [this.toCard(row, selected)] : [];
     });
@@ -312,7 +316,7 @@ export class SupabaseRepository implements RockGamesRepository {
   }
 
   async getGameVariants(gameId?: string): Promise<GameVariant[]> {
-    let query = this.client.from("game_variants").select("id,game_id,platform_id,version_label,price,compare_at_price,availability,release_date,new_until,stock_quantity,is_active,created_at,updated_at").eq("is_active", true);
+    let query = this.client.from("game_variants").select("id,game_id,platform_id,version_label,account_type,price,compare_at_price,availability,release_date,new_until,stock_quantity,is_active,created_at,updated_at").eq("is_active", true);
     if (gameId) query = query.eq("game_id", gameId);
     const rows = await this.rows<Omit<JoinedVariant, "platforms">[]>("game_variants", query.order("created_at"));
     return rows.map((row) => this.toVariant(row as JoinedVariant));
@@ -405,7 +409,7 @@ export class SupabaseRepository implements RockGamesRepository {
           if (mood.genreIds.length && !mood.genreIds.some((id) => linkedGenres.includes(id))) return false;
           if (mood.tagIds.length && !mood.tagIds.some((id) => linkedTags.includes(id))) return false;
           return true;
-        }).sort((a, b) => (a.platforms?.sort_order ?? 999) - (b.platforms?.sort_order ?? 999) || Number(a.price) - Number(b.price));
+        }).sort((a, b) => Number(a.price) - Number(b.price) || (a.platforms?.sort_order ?? 999) - (b.platforms?.sort_order ?? 999));
         const variant = variants[0];
         const card = cards.find((candidate) => candidate.gameId === row.id);
         return variant && card ? [{ row, variant, card }] : [];

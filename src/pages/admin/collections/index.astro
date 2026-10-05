@@ -1,0 +1,73 @@
+---
+import AdminLayout from "../../../components/AdminLayout.astro";
+const client = Astro.locals.adminClient!;
+const slugs = ["featured", "best-sellers", "featured-offers", "upcoming"];
+const [collectionResult, variantResult] = await Promise.all([
+  client.from("collections").select("id,slug,name,is_active,start_at,end_at,sort_order").in("slug", ["featured", "best-sellers", "featured-offers", "recommended", "upcoming"]).order("sort_order"),
+  client.from("game_variants").select("id,version_label,account_type,is_active,price,compare_at_price,availability,games(title),platforms(name)").order("created_at", { ascending: false }),
+]);
+if (collectionResult.error || variantResult.error) throw new Error("No se pudieron cargar las selecciones de juegos.");
+const collections = (collectionResult.data ?? []).filter((item) => slugs.includes(item.slug));
+const names: Record<string, string> = { featured: "En portada", "best-sellers": "Más vendidos", "featured-offers": "Ofertas", upcoming: "Próximamente" };
+const active = collections.find((item) => item.slug === Astro.url.searchParams.get("collection")) ?? collections[0];
+const { data: items, error: itemError } = active ? await client.from("collection_items").select("game_variant_id,position").eq("collection_id", active.id).order("position") : { data: [], error: null };
+if (itemError) throw new Error("No se pudo cargar la selección de juegos.");
+const variants = variantResult.data ?? [];
+const itemIds = new Set((items ?? []).map((item) => item.game_variant_id));
+const variantFor = (id: string) => variants.find((item) => item.id === id);
+const variantName = (id: string) => {
+  const variant = variantFor(id);
+  return variant ? `${variant.games?.title ?? "Juego"} · ${variant.platforms?.name ?? "Consola"} · ${variant.version_label ?? "Estándar"} · ${variant.account_type === "primary" ? "Principal" : variant.account_type === "secondary" ? "Secundaria" : "Modalidad pendiente"}` : "Versión no disponible";
+};
+const toInput = (value: string | null) => value ? new Date(value).toISOString().slice(0, 16) : "";
+const discount = (price: number | null, previous: number | null) => previous && price != null && previous > price ? Math.round((previous - price) / previous * 100) : null;
+---
+<AdminLayout title={active ? names[active.slug] : "Contenido editorial"} active={active?.slug ?? "featured"}>
+  <nav class="admin-inline admin-collection-tabs" aria-label="Selecciones editoriales">{collections.map((item) => <a class:list={["admin-button", item.id === active?.id ? "secondary" : "ghost"]} href={`/admin/collections?collection=${item.slug}`}>{names[item.slug] ?? item.name}</a>)}</nav>
+  {!active ? <div class="admin-card admin-empty"><h2>Faltan las selecciones de la tienda</h2><p>La configuración inicial de Supabase todavía no está lista.</p></div> : <>
+    <form method="post" action="/admin/api/actions" class="admin-card">
+      <input type="hidden" name="intent" value="collection_save" /><input type="hidden" name="slug" value={active.slug} /><input type="hidden" name="return_to" value={`/admin/collections?collection=${active.slug}`} />
+      <h2>{names[active.slug]}</h2><p class="admin-section-note">Elige qué juegos aparecen y en qué orden.</p>
+      <details class="admin-advanced"><summary>Programar fechas de publicación</summary><div class="admin-grid"><label class="admin-field">Mostrar desde<input type="datetime-local" name="start_at" value={toInput(active.start_at)} data-utc-value={active.start_at ?? ""} /></label><label class="admin-field">Ocultar después de<input type="datetime-local" name="end_at" value={toInput(active.end_at)} data-utc-value={active.end_at ?? ""} /></label></div></details>
+      <label class="admin-check"><input type="checkbox" name="is_active" checked={active.is_active} />Mostrar esta selección en la tienda</label>
+      <div class="admin-form-actions"><button class="admin-button" type="submit">Guardar cambios</button><a class="admin-button ghost" href={active.slug === "upcoming" ? "/#catalogo-list" : "/#en-portada"} target="_blank" rel="noopener noreferrer">Ver tienda ↗</a></div>
+    </form>
+    <div class="admin-card"><h2>Juegos seleccionados <span class="admin-badge muted">{items?.length ?? 0}</span></h2><p class="admin-section-note">Arrastra para ordenar. También puedes usar las flechas para teclado.</p>
+      {(items ?? []).length === 0 && <div class="admin-empty"><p>Aún no agregas juegos a {names[active.slug]}.</p><a class="admin-button ghost small" href="#agregar">Agregar un juego</a></div>}
+      <div class="admin-collection-list" data-collection-list>
+        {(items ?? []).map((item, index) => { const variant = variantFor(item.game_variant_id); const offer = active.slug === "featured-offers" ? discount(variant?.price ?? null, variant?.compare_at_price ?? null) : null; return <article class="admin-collection-row" draggable="true" data-collection-variant={item.game_variant_id} tabindex="0" aria-label={`${variantName(item.game_variant_id)}. Usa Alt y las flechas para reordenar.`}>
+          <span class="admin-collection-order">{index + 1}</span><span class="admin-collection-title"><strong>{variantName(item.game_variant_id)}</strong>{active.slug === "featured-offers" && (offer !== null ? <small>${variant?.price} · antes ${variant?.compare_at_price} · −{offer}%</small> : <small>Agrega un precio anterior mayor al actual para mostrar el descuento.</small>)}</span>
+          <div class="admin-actions"><button class="admin-button ghost small" type="button" data-row-move="up" aria-label="Subir" disabled={index === 0}>↑</button><button class="admin-button ghost small" type="button" data-row-move="down" aria-label="Bajar" disabled={index === (items?.length ?? 0) - 1}>↓</button><form method="post" action="/admin/api/actions" data-confirm="¿Quitar este juego de la selección?"><input type="hidden" name="intent" value="collection_remove" /><input type="hidden" name="return_to" value={`/admin/collections?collection=${active.slug}`} /><input type="hidden" name="collection_id" value={active.id} /><input type="hidden" name="variant_id" value={item.game_variant_id} /><button class="admin-button danger small" type="submit">Quitar</button></form></div>
+        </article>; })}
+      </div>
+    </div>
+    <form method="post" action="/admin/api/actions" class="admin-card" id="agregar"><input type="hidden" name="intent" value="collection_add" /><input type="hidden" name="return_to" value={`/admin/collections?collection=${active.slug}`} /><input type="hidden" name="collection_id" value={active.id} /><h2>Agregar un juego</h2>
+      {variants.filter((variant) => !itemIds.has(variant.id)).length ? <><label class="admin-field">Buscar por nombre o consola<input type="search" placeholder="Empieza a escribir para filtrar" data-variant-search /></label><label class="admin-field">Juego y consola<select name="variant_id" required data-variant-select><option value="">Elige una opción</option>{variants.filter((variant) => !itemIds.has(variant.id)).map((variant) => <option value={variant.id} data-search={`${variant.games?.title ?? ""} ${variant.platforms?.name ?? ""} ${variant.version_label ?? "Estándar"}`.toLowerCase()}>{variantName(variant.id)}{variant.is_active ? "" : " · no disponible"}</option>)}</select></label><button class="admin-button" type="submit">Agregar a {names[active.slug]}</button></> : <div class="admin-empty">No hay más juegos para agregar. Primero crea un juego y agrega una versión disponible.</div>}
+    </form>
+    <form method="post" action="/admin/api/actions" hidden data-collection-order-form><input type="hidden" name="intent" value="collection_reorder" /><input type="hidden" name="return_to" value={`/admin/collections?collection=${active.slug}`} /><input type="hidden" name="collection_id" value={active.id} /></form>
+  </>}
+  <script>
+    const search = document.querySelector<HTMLInputElement>("[data-variant-search]");
+    const select = document.querySelector<HTMLSelectElement>("[data-variant-select]");
+    search?.addEventListener("input", () => { if (!select) return; const query = search.value.trim().toLowerCase(); [...select.options].forEach((option, index) => { if (index) option.hidden = !option.dataset.search?.includes(query); }); });
+    const list = document.querySelector<HTMLElement>("[data-collection-list]");
+    const orderForm = document.querySelector<HTMLFormElement>("[data-collection-order-form]");
+    let dragging: HTMLElement | null = null;
+    const saveOrder = async () => {
+      if (!list || !orderForm) return;
+      const data = new FormData(orderForm);
+      list.querySelectorAll<HTMLElement>("[data-collection-variant]").forEach((item) => data.append("variant_ids", item.dataset.collectionVariant ?? ""));
+      const response = await fetch(orderForm.action, { method: "POST", body: data, credentials: "same-origin" });
+      if (response.ok) window.location.reload();
+      else { window.alert("No se pudo guardar el orden. Recarga e inténtalo de nuevo."); window.location.reload(); }
+    };
+    list?.querySelectorAll<HTMLElement>("[data-collection-variant]").forEach((row) => {
+      row.addEventListener("dragstart", () => { dragging = row; row.classList.add("dragging"); });
+      row.addEventListener("dragend", () => { row.classList.remove("dragging"); dragging = null; });
+      row.addEventListener("dragover", (event) => { event.preventDefault(); if (!dragging || dragging === row || !list) return; const box = row.getBoundingClientRect(); list.insertBefore(dragging, event.clientY < box.top + box.height / 2 ? row : row.nextSibling); });
+      row.addEventListener("drop", (event) => { event.preventDefault(); void saveOrder(); });
+      row.addEventListener("keydown", (event) => { const key = (event as KeyboardEvent).key; if (!(event as KeyboardEvent).altKey || !["ArrowUp", "ArrowDown"].includes(key)) return; const next = key === "ArrowUp" ? row.previousElementSibling : row.nextElementSibling; if (next && list) { event.preventDefault(); list.insertBefore(row, key === "ArrowUp" ? next : next.nextSibling); void saveOrder(); } });
+      row.querySelectorAll<HTMLButtonElement>("[data-row-move]").forEach((button) => button.addEventListener("click", () => { const next = button.dataset.rowMove === "up" ? row.previousElementSibling : row.nextElementSibling; if (next && list) { list.insertBefore(row, button.dataset.rowMove === "up" ? next : next.nextSibling); void saveOrder(); } }));
+    });
+  </script>
+</AdminLayout>

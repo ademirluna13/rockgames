@@ -11,6 +11,9 @@
     "build": "astro build",
     "start": "node --env-file-if-exists=.env ./dist/server/entry.mjs",
     "verify:supabase": "node --env-file=.env scripts/verify-supabase-public.mjs",
+    "import:switch": "node --env-file-if-exists=.env scripts/import-switch-catalog.mjs",
+    "enrich:switch": "node --env-file-if-exists=.env scripts/enrich-switch-catalog.mjs",
+    "bootstrap:taxonomies": "node --env-file-if-exists=.env scripts/bootstrap-taxonomies.mjs",
     "optimize:art": "node scripts/optimize-art.mjs",
     "preview": "astro preview --host 127.0.0.1"
   },
@@ -20,15 +23,18 @@
     "@fontsource-variable/google-sans": "^5.3.1",
     "@fontsource-variable/google-sans-flex": "^5.3.1",
     "@fortawesome/free-brands-svg-icons": "^7.3.1",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "@tailwindcss/vite": "^4.1.0",
     "astro": "^7.3.5",
     "gsap": "^3.13.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4.1.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.4",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "typescript": "^5.9.0"

@@ -1,9 +1,28 @@
 import { defineMiddleware } from "astro:middleware";
+import { createAdminClient, resolveAdmin } from "./lib/admin/auth";
 
 const staticAsset = (pathname: string) => pathname.startsWith("/_astro/") || pathname.startsWith("/assets/") || pathname === "/favicon.ico";
 
 export const onRequest = defineMiddleware(async (context, next) => {
   try {
+    const pathname = context.url.pathname.replace(/\/$/, "") || "/";
+    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+      if (pathname !== "/admin/login" && pathname !== "/admin/api/login" && pathname !== "/admin/api/logout") {
+        const client = createAdminClient(context.request, context.cookies);
+        const admin = await resolveAdmin(client);
+        if (!admin) {
+          if (pathname.startsWith("/admin/api/") || context.request.method !== "GET") {
+            return new Response("Acceso denegado", { status: 403, headers: { "Cache-Control": "no-store" } });
+          }
+          return context.redirect("/admin/login", 303);
+        }
+        if ((pathname === "/admin/settings" || pathname === "/admin/home") && admin.role !== "owner") {
+          return new Response("Acceso denegado", { status: 403, headers: { "Cache-Control": "no-store" } });
+        }
+        context.locals.admin = admin;
+        context.locals.adminClient = client;
+      }
+    }
     const response = await next();
     if (!staticAsset(context.url.pathname)) {
       response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");

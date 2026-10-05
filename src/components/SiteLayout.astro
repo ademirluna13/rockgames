@@ -15,7 +15,12 @@ type Props = { settings: SiteSettings; page: "home" | "catalog" | "how" };
 const { settings, page } = Astro.props;
 const isHome = page === "home";
 const isCatalog = page === "catalog";
-const contactUrl = `https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent("Hola ROCK GAMES, quiero consultar por un juego digital.")}`;
+const contactUrl = settings.whatsappNumber ? `https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent("Hola ROCK GAMES, quiero consultar por un juego digital.")}` : "";
+const socialLinks = [
+  ...(settings.socialLinks.facebook ? [{ name: "Facebook" as const, href: settings.socialLinks.facebook }] : []),
+  ...(settings.socialLinks.youtube ? [{ name: "YouTube" as const, href: settings.socialLinks.youtube }] : []),
+  ...(settings.whatsappNumber ? [{ name: "WhatsApp" as const, href: contactUrl }] : []),
+];
 ---
 <!doctype html>
 <html lang="es-MX">
@@ -35,7 +40,7 @@ const contactUrl = `https://wa.me/${settings.whatsappNumber}?text=${encodeURICom
       <button class="mobile-menu" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="main-navigation"><span></span><span></span></button>
     </header>
     <main><slot /></main>
-    <footer class="site-footer"><div class="footer-brand"><a class="brand" href="/"><img src={settings.logoPath} alt="" /><span>ROCK <small>GAMES</small></span></a><p>Juegos digitales para tu consola.</p></div><nav aria-label="Enlaces del pie"><a href="/catalogo">Catálogo</a><a href="/como-funciona">Cómo funciona</a><a href={contactUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a></nav><div class="footer-social"><span>Síguenos</span>{settings.socialLinks.facebook && <a href={settings.socialLinks.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook"><BrandIcon name="Facebook" /></a>}{settings.socialLinks.youtube && <a href={settings.socialLinks.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube"><BrandIcon name="YouTube" /></a>}{!settings.socialLinks.facebook && !settings.socialLinks.youtube && <small>Perfiles por configurar</small>}</div><small>© {new Date().getFullYear()} ROCK GAMES</small></footer>
+    <footer class="site-footer"><div class="footer-brand"><a class="brand" href="/"><img src={settings.logoPath} alt="" /><span>ROCK <small>GAMES</small></span></a><p>Juegos digitales para tu consola.</p></div><nav aria-label="Enlaces del pie"><a href="/catalogo">Catálogo</a><a href="/como-funciona">Cómo funciona</a>{settings.whatsappNumber && <a href={contactUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>}</nav>{socialLinks.length > 0 && <div class="footer-social" aria-label="Redes sociales">{socialLinks.map(({ name, href }) => <a class:list={["footer-social-link", { "footer-social-whatsapp": name === "WhatsApp" }]} href={href} target="_blank" rel="noopener noreferrer" aria-label={name}>{name === "WhatsApp" ? "Comprar por WhatsApp ↗" : <><BrandIcon name={name} /><span>{name}</span></>}</a>)}</div>}<small>© {new Date().getFullYear()} ROCK GAMES</small></footer>
     <button class="back-to-top" type="button" aria-label="Volver arriba"><span aria-hidden="true">↑</span><small>Volver arriba</small></button>
     <script>
       const toggle = document.querySelector<HTMLButtonElement>(".mobile-menu");

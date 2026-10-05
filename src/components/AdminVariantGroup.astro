@@ -1,0 +1,37 @@
+---
+import AdminVariantForm from "./AdminVariantForm.astro";
+
+type Variant = { id: string; platform_id: string; version_key: string; version_label: string | null; account_type: "primary" | "secondary" | null; price: number; compare_at_price: number | null; availability: string; release_date: string | null; new_until: string | null; stock_quantity: number | null; is_active: boolean };
+const { gameId, platformName, platformId, versionKey, versionLabel, variants, platforms } = Astro.props as {
+  gameId: string; platformName: string; platformId: string; versionKey: string; versionLabel: string;
+  variants: Variant[]; platforms: { id: string; name: string }[];
+};
+const types = [{ key: "secondary", label: "Cuenta secundaria" }, { key: "primary", label: "Cuenta principal" }] as const;
+const availabilityLabels: Record<string, string> = { available: "Disponible", unavailable: "No disponible", preorder: "Preventa", upcoming: "Próximamente" };
+const secondary = variants.find((item) => item.account_type === "secondary");
+const primary = variants.find((item) => item.account_type === "primary");
+const warning = secondary && primary && Number(secondary.price) >= Number(primary.price);
+---
+<article class="admin-variant-group" id={`variant-group-${platformId}-${versionKey}`}>
+  <div class="admin-variant-group-heading"><div><span class="admin-eyebrow">{platformName}</span><h3>{versionLabel}</h3></div><span class="admin-help">{variants.length} {variants.length === 1 ? "modalidad" : "modalidades"}</span></div>
+  <form method="post" action="/admin/api/actions" data-variant-group>
+    <input type="hidden" name="intent" value="variant_group_save" /><input type="hidden" name="return_to" value={`/admin/games/${gameId}`} />
+    <input type="hidden" name="game_id" value={gameId} /><input type="hidden" name="platform_id" value={platformId} /><input type="hidden" name="version_key" value={versionKey} />
+    <div class="admin-variant-slots">
+      {types.map(({ key, label }) => { const variant = key === "secondary" ? secondary : primary; return <div class="admin-variant-slot">
+        <div class="admin-variant-slot-heading"><strong>{label}</strong><span class:list={["admin-badge", { muted: !variant }]}>{variant ? availabilityLabels[variant.availability] ?? variant.availability : "No configurada"}</span></div>
+        {variant ? <>
+          <input type="hidden" name={`${key}_id`} value={variant.id} />
+          <div class="admin-grid"><label class="admin-field">Precio actual · MXN<input type="number" name={`${key}_price`} value={variant.price} min="0" max="99999999" step="0.01" required /></label><label class="admin-field">Precio anterior · MXN<input type="number" name={`${key}_compare_at_price`} value={variant.compare_at_price ?? ""} min="0" max="99999999" step="0.01" /></label></div>
+          <div class="admin-grid"><label class="admin-field">Disponibilidad<select name={`${key}_availability`}><option value="available" selected={variant.availability === "available"}>Disponible</option><option value="unavailable" selected={variant.availability === "unavailable"}>No disponible</option><option value="preorder" selected={variant.availability === "preorder"}>Preventa</option><option value="upcoming" selected={variant.availability === "upcoming"}>Próximamente</option></select></label><label class="admin-field">Lanzamiento <span class="admin-help">Opcional</span><input type="date" name={`${key}_release_date`} value={variant.release_date ?? ""} /></label></div>
+          <label class="admin-check"><input type="checkbox" name={`${key}_is_active`} checked={variant.is_active} /> Activa en el catálogo</label>
+        </> : <div class="admin-variant-missing"><p>Esta modalidad aún no tiene precio ni disponibilidad.</p><a class="admin-button ghost small" href={`/admin/games/${gameId}?copy=${variants[0]?.id}#new-variant`}>+ Agregar {label.toLowerCase()}</a></div>}
+      </div>; })}
+    </div>
+    <p class="admin-help admin-price-warning" data-price-warning hidden={!warning}>Revisa los precios: la cuenta secundaria cuesta igual o más que la principal. Puedes guardar así.</p>
+    <div class="admin-form-actions"><button class="admin-button" type="submit">Guardar precios y disponibilidad</button><span class="admin-help">Se conservan las variantes y sus identificadores.</span></div>
+  </form>
+  <details class="admin-advanced admin-variant-advanced"><summary>Editar detalles avanzados</summary><p class="admin-help">Edición, existencias y fechas especiales de cada modalidad.</p>
+    {variants.map((variant) => <div class="admin-variant-advanced-item"><p class="admin-badge">{variant.account_type === "secondary" ? "Cuenta secundaria" : "Cuenta principal"}</p><AdminVariantForm gameId={gameId} platforms={platforms} variant={variant} /><form method="post" action="/admin/api/actions" data-confirm={`¿Quitar ${variant.account_type === "secondary" ? "la cuenta secundaria" : "la cuenta principal"} de ${platformName}? También desaparecerá de las selecciones editoriales.`}><input type="hidden" name="intent" value="variant_delete" /><input type="hidden" name="return_to" value={`/admin/games/${gameId}`} /><input type="hidden" name="game_id" value={gameId} /><input type="hidden" name="id" value={variant.id} /><button class="admin-button danger small" type="submit">Quitar modalidad</button></form></div>)}
+  </details>
+</article>

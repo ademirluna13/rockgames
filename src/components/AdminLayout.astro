@@ -1,0 +1,140 @@
+---
+import "@fontsource-variable/google-sans";
+import "../styles/admin.css";
+import "../styles/admin-responsive.css";
+
+const { title, active } = Astro.props as { title: string; active: string };
+const admin = Astro.locals.admin;
+const groups = [
+  { label: "", items: [{ label: "Dashboard", href: "/admin", key: "dashboard" }] },
+  { label: "Catálogo", items: [{ label: "Juegos", href: "/admin/games", key: "games" }] },
+  { label: "Contenido", items: [
+    { label: "En portada", href: "/admin/collections?collection=featured", key: "featured" },
+    { label: "Más vendidos", href: "/admin/collections?collection=best-sellers", key: "best-sellers" },
+    { label: "Ofertas", href: "/admin/collections?collection=featured-offers", key: "featured-offers" },
+    { label: "Próximamente", href: "/admin/collections?collection=upcoming", key: "upcoming" },
+    ...(admin?.role === "owner" ? [{ label: "Home", href: "/admin/home", key: "home" }] : []),
+    { label: "Testimonios", href: "/admin/testimonials", key: "testimonials" },
+  ] },
+  { label: "Multimedia", items: [{ label: "Biblioteca", href: "/admin/media", key: "media" }] },
+  ...(admin?.role === "owner" ? [{ label: "Configuración", items: [{ label: "Configuración", href: "/admin/settings", key: "settings" }] }] : []),
+];
+const success = Astro.url.searchParams.get("ok");
+const error = Astro.url.searchParams.get("error");
+const messages: Record<string, string> = {
+  saved: "Cambios guardados.", created: "Elemento creado.", deleted: "Elemento eliminado.",
+  uploaded: "Archivo subido.", signedout: "Sesión cerrada.",
+};
+const errors: Record<string, string> = {
+  invalid: "Hay un dato inválido o incompleto. Revisa el formulario.",
+  conflict: "El dato ya existe o el archivo está en uso.",
+  file: "No se aceptó el archivo. Usa una imagen JPG, PNG, WebP o AVIF de hasta 20 MB; los videos deben ser MP4 de hasta 20 MB.",
+  access: "Tu cuenta no tiene permiso para esta sección.",
+  save: "No se pudo guardar. Inténtalo de nuevo.",
+  variant_required: "Agrega primero una versión activa y disponible para publicar este juego.",
+  incomplete: "Completa portada, descripciones, género y datos de la variante antes de publicar.",
+  partial_primary: "Se guardó la cuenta secundaria, pero falló la principal. Recarga y revisa ambos precios antes de repetir.",
+  partial_secondary: "Se guardó la cuenta principal, pero falló la secundaria. Recarga y revisa ambos precios antes de repetir.",
+};
+---
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{title} · Admin ROCK GAMES</title>
+  </head>
+  <body class="admin-body">
+    <div class="admin-shell">
+      <aside class="admin-sidebar" id="admin-navigation-drawer">
+        <a class="admin-brand" href="/admin"><span class="admin-brand-mark">R</span><span>ROCK GAMES<small>ADMIN</small></span></a>
+        <nav id="admin-navigation" aria-label="Panel de administración">
+          {groups.map((group) => <div class="admin-nav-group">{group.label && <span class="admin-nav-label">{group.label}</span>}{group.items.map((item) => <a href={item.href} class:list={["admin-nav-link", { active: active === item.key }]}>{item.label}</a>)}</div>)}
+        </nav>
+        <div class="admin-account">
+          <span>{admin?.email}</span><small>{admin?.role === "owner" ? "Propietario" : "Editor"}</small>
+          <form method="post" action="/admin/api/logout"><button class="admin-text-button" type="submit">Cerrar sesión →</button></form>
+        </div>
+      </aside>
+      <button class="admin-nav-backdrop" type="button" aria-label="Cerrar menú de administración" tabindex="-1"></button>
+      <main class="admin-main">
+        <header class="admin-top"><button class="admin-menu-toggle" type="button" aria-label="Abrir menú de administración" aria-expanded="false" aria-controls="admin-navigation-drawer"><span aria-hidden="true">☰</span><span class="admin-menu-label">Menú</span></button><span class="admin-top-label">Panel de contenido</span><div class="admin-inline"><span class="admin-save-state" data-save-state aria-live="polite">Todo guardado</span><a href="/" target="_blank" rel="noopener noreferrer">Ver sitio ↗</a></div></header>
+        <div class="admin-content">
+          <div class="admin-heading"><div><p class="admin-eyebrow">ROCK GAMES / CMS</p><h1>{title}</h1></div><slot name="heading-action" /></div>
+          {success && messages[success] && <div class="admin-feedback success" role="status">{messages[success]}</div>}
+          {error && <div class="admin-feedback error" role="alert">{errors[error] ?? errors.save}</div>}
+          <slot />
+        </div>
+      </main>
+    </div>
+    <script>
+      document.querySelectorAll<HTMLInputElement>("input[data-utc-value]").forEach((input) => {
+        const value = input.dataset.utcValue;
+        if (!value) return;
+        const date = new Date(value);
+        if (!Number.isNaN(date.getTime())) {
+          input.value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        }
+      });
+      document.querySelectorAll<HTMLFormElement>("form").forEach((form) => {
+        form.addEventListener("submit", (event) => {
+          if (form.dataset.confirm && !window.confirm(form.dataset.confirm)) { event.preventDefault(); return; }
+          if (!form.checkValidity()) return;
+          form.querySelectorAll<HTMLInputElement>('input[type="datetime-local"][name]').forEach((input) => {
+            const name = input.name;
+            const value = input.value ? new Date(input.value).toISOString() : "";
+            input.disabled = true;
+            const hidden = document.createElement("input");
+            hidden.type = "hidden"; hidden.name = name; hidden.value = value;
+            form.append(hidden);
+          });
+          const button = event.submitter instanceof HTMLButtonElement ? event.submitter : form.querySelector<HTMLButtonElement>('button[type="submit"]');
+          if (button && !button.dataset.noLoading) { button.disabled = true; button.textContent = form.enctype.includes("multipart/form-data") ? "Subiendo…" : "Guardando…"; }
+        });
+      });
+      let hasUnsavedChanges = false;
+      const saveState = document.querySelector<HTMLElement>("[data-save-state]");
+      const markDirty = () => { hasUnsavedChanges = true; if (saveState) saveState.textContent = "Cambios sin guardar"; };
+      document.querySelectorAll<HTMLFormElement>("form:not([data-no-unsaved])").forEach((form) => {
+        form.addEventListener("input", markDirty);
+        form.addEventListener("change", markDirty);
+        form.addEventListener("submit", (event) => {
+          if (!event.defaultPrevented && form.checkValidity()) { hasUnsavedChanges = false; if (saveState) saveState.textContent = "Guardando…"; }
+        });
+      });
+      window.addEventListener("beforeunload", (event) => {
+        if (!hasUnsavedChanges) return;
+        event.preventDefault(); event.returnValue = "";
+      });
+      const shell = document.querySelector<HTMLElement>(".admin-shell");
+      const sidebar = document.querySelector<HTMLElement>(".admin-sidebar");
+      const menuButton = document.querySelector<HTMLButtonElement>(".admin-menu-toggle");
+      const navBackdrop = document.querySelector<HTMLButtonElement>(".admin-nav-backdrop");
+      const closeNav = (restoreFocus = false) => { shell?.classList.remove("nav-open"); document.body.classList.remove("admin-nav-open"); menuButton?.setAttribute("aria-expanded", "false"); menuButton?.setAttribute("aria-label", "Abrir menú de administración"); if (sidebar) { sidebar.inert = window.matchMedia("(max-width: 860px)").matches; sidebar.setAttribute("aria-hidden", String(sidebar.inert)); } if (restoreFocus) menuButton?.focus(); };
+      menuButton?.addEventListener("click", () => {
+        const open = shell?.classList.toggle("nav-open") ?? false;
+        document.body.classList.toggle("admin-nav-open", open);
+        menuButton.setAttribute("aria-expanded", String(open));
+        menuButton.setAttribute("aria-label", open ? "Cerrar menú de administración" : "Abrir menú de administración");
+        if (sidebar) { sidebar.inert = !open && window.matchMedia("(max-width: 860px)").matches; sidebar.setAttribute("aria-hidden", String(sidebar.inert)); }
+        if (open) document.querySelector<HTMLAnchorElement>(".admin-sidebar .admin-brand")?.focus();
+      });
+      const mobileAdminNav = window.matchMedia("(max-width: 860px)");
+      if (sidebar) { sidebar.inert = mobileAdminNav.matches; sidebar.setAttribute("aria-hidden", String(sidebar.inert)); }
+      navBackdrop?.addEventListener("click", () => closeNav(true));
+      document.querySelectorAll(".admin-sidebar nav a").forEach((link) => link.addEventListener("click", () => closeNav(false)));
+      document.addEventListener("keydown", (event) => {
+        if (!shell?.classList.contains("nav-open")) return;
+        if (event.key === "Escape") { closeNav(true); return; }
+        if (event.key === "Tab" && sidebar) {
+          const focusable = [...sidebar.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')].filter((item) => !item.hidden);
+          const first = focusable[0], last = focusable.at(-1);
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        }
+      });
+      mobileAdminNav.addEventListener("change", (event) => { if (!event.matches) closeNav(false); else if (sidebar) { sidebar.inert = true; sidebar.setAttribute("aria-hidden", "true"); } });
+    </script>
+  </body>
+</html>

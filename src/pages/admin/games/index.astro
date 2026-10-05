@@ -1,0 +1,136 @@
+---
+import AdminLayout from "../../../components/AdminLayout.astro";
+import { collectionNames, getAdminGames } from "../../../lib/admin/game-list";
+const client = Astro.locals.adminClient!;
+const [games, genresRes, tagsRes] = await Promise.all([
+  getAdminGames(client),
+  client.from("genres").select("id,name").eq("is_active", true).order("name"),
+  client.from("tags").select("id,name").eq("is_active", true).order("name"),
+]);
+if (genresRes.error || tagsRes.error) throw new Error("No se pudo cargar el catálogo.");
+const genres = genresRes.data ?? [];
+const tags = tagsRes.data ?? [];
+const platforms = [...new Set(games.flatMap((game) => game.variants.map((variant) => variant.platform).filter(Boolean)))].sort();
+const money = (value: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(value);
+---
+<AdminLayout title="Juegos" active="games">
+  <a slot="heading-action" class="admin-button" href="/admin/games/new">+ Crear juego</a>
+  <p class="admin-games-intro">{games.length} juegos en el catálogo. Completa cada ficha antes de publicarla.</p>
+  <div id="game-filters" class="admin-games-toolbar">
+    <label class="admin-field">Buscar<input id="game-search" type="search" placeholder="Nombre del juego" /></label>
+    <label class="admin-field">Estado<select id="game-status"><option value="all">Todos</option><option value="draft">Borrador</option><option value="published">Publicado</option></select></label>
+    <label class="admin-field">Plataforma<select id="game-platform"><option value="all">Todas</option>{platforms.map((name) => <option value={name}>{name}</option>)}</select></label>
+    <label class="admin-field">Tipo de cuenta<select id="game-account"><option value="all">Todas</option><option value="primary">Principal</option><option value="secondary">Secundaria</option></select></label>
+    <label class="admin-field">Contenido<select id="game-content"><option value="all">Todo</option><option value="cover">Sin portada</option><option value="description">Sin descripción</option><option value="genre">Sin género</option><option value="ready">Listos para publicar</option></select></label>
+    <label class="admin-field">Colección<select id="game-collection"><option value="all">Todas</option>{Object.entries(collectionNames).map(([slug, name]) => <option value={slug}>{name}</option>)}</select></label>
+    <label class="admin-field">Ordenar<select id="game-sort"><option value="updated">Actualizados recientemente</option><option value="title">Título A-Z</option><option value="price-asc">Precio menor</option><option value="price-desc">Precio mayor</option><option value="incomplete">Más incompletos</option><option value="complete">Más completos</option></select></label>
+  </div>
+  <div class="admin-games-selection"><label class="admin-check"><input id="game-select-all" type="checkbox" /> Seleccionar visibles</label><span id="game-results" aria-live="polite"></span><div class="admin-actions"><button id="game-bulk-publish" type="button" class="admin-button secondary small" disabled>Publicar seleccionados</button><button id="game-bulk-unpublish" type="button" class="admin-button ghost small" disabled>Despublicar seleccionados</button></div></div>
+  <div id="game-list" class="admin-games-list">
+    {games.map((game) => <article class="admin-game-row" data-game={JSON.stringify(game)} data-id={game.id}>
+      <label class="admin-game-select"><input type="checkbox" aria-label={`Seleccionar ${game.title}`} /></label>
+      <div class="admin-game-cover">{game.cover ? <img src={game.cover} alt={`Portada de ${game.title}`} loading="lazy" /> : <span>Sin<br />portada</span>}</div>
+      <div class="admin-game-main"><strong>{game.title}</strong><div class="admin-game-platforms">{[...new Set(game.variants.map((v) => v.platform).filter(Boolean))].map((name) => <span>{name}</span>)}{!game.variants.length && <span>Sin plataforma</span>}</div><div class="admin-game-modalities">{game.variants.filter((v) => v.is_active).map((v) => <small>{game.variants.some((other) => other.platform !== v.platform) ? `${v.platform} · ` : ""}{v.accountType === "primary" ? "Principal" : v.accountType === "secondary" ? "Secundaria" : "Sin modalidad"} · {money(v.price)}{v.availability === "unavailable" ? " · No disponible" : ""}</small>)}{!game.variants.length && <small>Sin precio</small>}</div></div>
+      <div class="admin-game-meta"><span class:list={["admin-badge", { muted: !game.is_published }]}>{game.is_published ? "Publicado" : "Borrador"}</span>{!game.ready && <span class="admin-badge warn">Incompleto</span>}<div class="admin-game-progress"><span>Contenido · {game.completeness}/8</span><meter min="0" max="8" value={game.completeness}>{game.completeness}/8</meter></div><small title={game.missing.join(", ")}>{game.missing.length ? `Falta: ${game.missing.slice(0, 3).join(", ")}${game.missing.length > 3 ? "…" : ""}` : "Ficha completa"}</small></div>
+      <div class="admin-game-extra"><span>{game.collections.length ? game.collections.map((slug) => collectionNames[slug] ?? slug).join(" · ") : "Sin colecciones"}</span><small>{new Date(game.updated_at).toLocaleDateString("es-MX")}</small></div>
+      <div class="admin-game-actions"><button type="button" class="admin-button secondary small" data-quick={game.id}>Editar rápido</button><a class="admin-button ghost small" href={`/admin/games/${game.id}`}>Completar ficha ↗</a>{!game.cover && <button type="button" class="admin-game-link" data-cover={game.id}>Subir portada</button>}<button type="button" class="admin-game-link" data-publish={game.id} data-next={game.is_published ? "false" : "true"} disabled={!game.is_published && !game.ready}>{game.is_published ? "Despublicar" : "Publicar"}</button></div>
+    </article>)}
+    {!games.length && <div class="admin-empty"><h2>No tienes juegos todavía</h2><p>Agrega el primero para empezar a preparar el catálogo.</p><a class="admin-button" href="/admin/games/new">Crear primer juego</a></div>}
+  </div>
+  <p id="game-empty-filter" class="admin-empty" hidden>No encontramos juegos con esos filtros.</p>
+  <dialog id="game-quick-dialog" class="admin-game-dialog">
+    <div class="admin-game-dialog-head"><div><p class="admin-eyebrow">EDICIÓN RÁPIDA</p><h2 id="quick-heading">Editar juego</h2></div><button type="button" id="quick-close" class="admin-game-close" aria-label="Cerrar">×</button></div>
+    <form id="quick-form" data-no-unsaved><input type="hidden" name="intent" value="game_quick" /><input type="hidden" name="id" /><input type="hidden" name="variant_id" />
+      <label class="admin-field">Título<input name="title" required maxlength="200" /></label>
+      <label class="admin-field">Descripción corta<textarea name="short_description" maxlength="500" rows="2"></textarea></label>
+      <label class="admin-field">Descripción completa<textarea name="description" maxlength="10000" rows="5"></textarea></label>
+      <div class="admin-grid"><div><p class="admin-help">Géneros</p>{genres.length ? genres.map((item) => <label class="admin-check"><input type="checkbox" name="genre_ids" value={item.id} />{item.name}</label>) : <p class="admin-help">No hay géneros disponibles.</p>}</div><div><p class="admin-help">Etiquetas</p>{tags.length ? tags.map((item) => <label class="admin-check"><input type="checkbox" name="tag_ids" value={item.id} />{item.name}</label>) : <p class="admin-help">No hay etiquetas disponibles.</p>}</div></div>
+      <div class="admin-quick-prices"><strong>Precios por modalidad</strong><div id="quick-price-summary" class="admin-quick-price-list"></div><a id="quick-prices-link" class="admin-button ghost small" href="#">Administrar precios →</a></div>
+      <div class="admin-grid"><label class="admin-field" id="quick-price-label">Precio de la modalidad seleccionada · MXN<input name="price" type="number" min="1" step="0.01" required /></label><label class="admin-field">Disponibilidad<select name="availability"><option value="available">Disponible</option><option value="preorder">Preventa</option><option value="upcoming">Próximamente</option><option value="unavailable">No disponible</option></select></label></div>
+      <p id="quick-no-variant" class="admin-help" hidden>Este juego aún no tiene versión. Puedes editar su contenido aquí y agregar la versión en Edición completa.</p>
+      <label class="admin-field">Portada<input id="quick-cover" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><small>Opcional. Se sube al guardar.</small></label>
+      <label class="admin-check"><input id="quick-published" type="checkbox" /> Publicado</label><p id="quick-publish-hint" class="admin-help"></p>
+      <div class="admin-form-actions"><button id="quick-save" type="button" class="admin-button">Guardar cambios</button><a id="quick-full" class="admin-button ghost" href="#">Edición completa →</a></div><p id="quick-feedback" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+  <script>
+    type Row = { id: string; title: string; short_description: string; description: string; is_published: boolean; cover: string | null; primary: { id: string; price: number; availability: string; accountType: "primary" | "secondary" | null } | null; genreIds: string[]; tagIds: string[]; ready: boolean; missing: string[]; variants: { platform: string; price: number; availability: string; accountType: "primary" | "secondary" | null }[]; collections: string[]; completeness: number; updated_at: string };
+    const $ = <T extends Element>(s: string) => document.querySelector<T>(s)!;
+    const rows = () => [...document.querySelectorAll<HTMLElement>(".admin-game-row")];
+    const data = (row: HTMLElement): Row => JSON.parse(row.dataset.game ?? "{}");
+    const selected = () => rows().filter((row) => row.querySelector<HTMLInputElement>(".admin-game-select input")?.checked).map(data);
+    const dialog = $<HTMLDialogElement>("#game-quick-dialog");
+    const form = $<HTMLFormElement>("#quick-form");
+    const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    const errorText = (code: string) => ({ incomplete: "La ficha aún tiene campos pendientes para publicar.", invalid: "Revisa los campos y vuelve a intentarlo.", file: "La portada no pudo subirse. Revisa formato y tamaño.", access: "Tu cuenta no tiene permiso para guardar este cambio." }[code] ?? "No se pudo guardar. Inténtalo de nuevo.");
+    function filterRows() {
+      const search = $<HTMLInputElement>("#game-search").value.trim().toLocaleLowerCase("es-MX");
+      const status = $<HTMLSelectElement>("#game-status").value, platform = $<HTMLSelectElement>("#game-platform").value, account = $<HTMLSelectElement>("#game-account").value;
+      const content = $<HTMLSelectElement>("#game-content").value, collection = $<HTMLSelectElement>("#game-collection").value;
+      const sort = $<HTMLSelectElement>("#game-sort").value;
+      const visible = rows().filter((row) => { const game = data(row); const missing = game.missing;
+        const match = game.title.toLocaleLowerCase("es-MX").includes(search) &&
+          (status === "all" || (status === "published") === game.is_published) &&
+          (platform === "all" || game.variants.some((v) => v.platform === platform)) &&
+          (account === "all" || game.variants.some((v) => v.accountType === account)) &&
+          (collection === "all" || game.collections.includes(collection)) &&
+          (content === "all" || (content === "cover" && !game.cover) || (content === "description" && (missing.includes("Descripción corta") || missing.includes("Descripción completa"))) || (content === "genre" && missing.includes("Género")) || (content === "ready" && game.ready));
+        row.hidden = !match; return match; });
+      visible.sort((a, b) => { const x = data(a), y = data(b); switch (sort) {
+        case "title": return x.title.localeCompare(y.title, "es-MX");
+        case "price-asc": return (x.primary?.price ?? Infinity) - (y.primary?.price ?? Infinity);
+        case "price-desc": return (y.primary?.price ?? -Infinity) - (x.primary?.price ?? -Infinity);
+        case "incomplete": return x.completeness - y.completeness;
+        case "complete": return y.completeness - x.completeness;
+        default: return Date.parse(y.updated_at) - Date.parse(x.updated_at);
+      }});
+      const list = $("#game-list"); visible.forEach((row) => list.append(row));
+      $("#game-empty-filter").toggleAttribute("hidden", visible.length > 0 || rows().length === 0);
+      $("#game-results").textContent = `${visible.length} visibles · ${selected().length} seleccionados`;
+      $<HTMLButtonElement>("#game-bulk-publish").disabled = !selected().length;
+      $<HTMLButtonElement>("#game-bulk-unpublish").disabled = !selected().length;
+    }
+    async function post(payload: FormData) { const response = await fetch("/admin/api/actions", { method: "POST", body: payload, headers: { Accept: "application/json" }, credentials: "same-origin" }); const result = await response.json(); if (!response.ok || !result.ok) throw new Error(errorText(result.code)); }
+    async function refresh() { const response = await fetch("/admin/games", { credentials: "same-origin", cache: "no-store" }); if (!response.ok) throw new Error("No se pudo actualizar el listado. Recarga la página."); const page = new DOMParser().parseFromString(await response.text(), "text/html"); const list = page.querySelector("#game-list"); if (!list) throw new Error("No se pudo actualizar el listado. Recarga la página."); $("#game-list").replaceWith(list); $<HTMLInputElement>("#game-select-all").checked = false; filterRows(); }
+    function openQuick(game: Row, focusCover = false) {
+      form.reset();
+      field("id").value = game.id;
+      field("variant_id").value = game.primary?.id ?? "";
+      field("title").value = game.title;
+      field("short_description").value = game.short_description;
+      field("description").value = game.description;
+      field("price").value = game.primary ? String(game.primary.price) : "";
+      field("price").toggleAttribute("disabled", !game.primary);
+      field("availability").value = game.primary?.availability ?? "available";
+      field("availability").toggleAttribute("disabled", !game.primary);
+      const summary = $<HTMLElement>("#quick-price-summary");
+      summary.replaceChildren();
+      for (const variant of game.variants) {
+        const item = document.createElement("span");
+        item.textContent = `${variant.platform} · ${variant.accountType === "primary" ? "Principal" : variant.accountType === "secondary" ? "Secundaria" : "Sin modalidad"} · ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(variant.price)}${variant.availability === "unavailable" ? " · No disponible" : ""}`;
+        summary.append(item);
+      }
+      if (!game.variants.length) summary.textContent = "Sin modalidades configuradas.";
+      $<HTMLAnchorElement>("#quick-prices-link").href = `/admin/games/${game.id}#variant-groups`;
+      $("#quick-price-label").firstChild!.textContent = `Precio de ${game.primary?.accountType === "primary" ? "cuenta principal" : game.primary?.accountType === "secondary" ? "cuenta secundaria" : "la modalidad"} · MXN`;
+      $("#quick-no-variant").toggleAttribute("hidden", Boolean(game.primary));
+      form.querySelectorAll<HTMLInputElement>('input[name="genre_ids"]').forEach((item) => item.checked = game.genreIds.includes(item.value));
+      form.querySelectorAll<HTMLInputElement>('input[name="tag_ids"]').forEach((item) => item.checked = game.tagIds.includes(item.value));
+      $<HTMLInputElement>("#quick-published").checked = game.is_published;
+      $("#quick-heading").textContent = game.title;
+      $<HTMLAnchorElement>("#quick-full").href = `/admin/games/${game.id}`;
+      $("#quick-publish-hint").textContent = game.ready ? "Ficha lista para publicar." : `Faltan: ${game.missing.join(", ")}. Puedes guardar el borrador y completar estos campos.`;
+      $("#quick-feedback").textContent = "";
+      dialog.showModal();
+      if (focusCover) $<HTMLInputElement>("#quick-cover").focus();
+    }
+    document.querySelectorAll("#game-filters input, #game-filters select").forEach((input) => input.addEventListener("input", filterRows));
+    document.addEventListener("change", (event) => { if ((event.target as Element).matches(".admin-game-select input")) filterRows(); });
+    $<HTMLInputElement>("#game-select-all").addEventListener("change", (event) => { const checked = (event.target as HTMLInputElement).checked; rows().filter((row) => !row.hidden).forEach((row) => { row.querySelector<HTMLInputElement>(".admin-game-select input")!.checked = checked; }); filterRows(); });
+    document.addEventListener("click", async (event) => { const button = (event.target as Element).closest<HTMLButtonElement>("[data-quick], [data-cover], [data-publish]"); if (!button) return; const id = button.dataset.quick ?? button.dataset.cover ?? button.dataset.publish; const row = rows().find((item) => item.dataset.id === id); if (!row) return; const game = data(row); if (button.dataset.publish) { if (!window.confirm(`${game.is_published ? "Despublicar" : "Publicar"} “${game.title}”?`)) return; const payload = new FormData(); payload.set("intent", "game_publish"); payload.set("id", game.id); payload.set("is_published", button.dataset.next ?? "false"); button.disabled = true; try { await post(payload); await refresh(); } catch (error) { window.alert(error instanceof Error ? error.message : "No se pudo guardar."); button.disabled = false; } } else openQuick(game, Boolean(button.dataset.cover)); });
+    $<HTMLButtonElement>("#quick-close").addEventListener("click", () => dialog.close());
+    $<HTMLButtonElement>("#quick-save").addEventListener("click", async () => { if (!form.reportValidity()) return; const button = $<HTMLButtonElement>("#quick-save"), feedback = $("#quick-feedback"); const payload = new FormData(form); payload.set("is_published", String($<HTMLInputElement>("#quick-published").checked)); const cover = $<HTMLInputElement>("#quick-cover").files?.[0]; button.disabled = true; feedback.textContent = "Guardando…"; try { if (cover) { const upload = new FormData(); upload.set("intent", "media_upload"); upload.set("game_id", String(payload.get("id"))); upload.set("role", "cover"); upload.set("file", cover); await post(upload); } await post(payload); await refresh(); dialog.close(); } catch (error) { feedback.textContent = error instanceof Error ? error.message : "No se pudo guardar."; } finally { button.disabled = false; } });
+    async function bulk(publish: boolean) { const games = selected(); if (!games.length) return; const ready = games.filter((game) => game.ready).length; const message = publish ? `${games.length} seleccionados · ${ready} listos · ${games.length - ready} incompletos. Se publicarán únicamente los listos. ¿Continuar?` : `¿Despublicar ${games.length} juegos seleccionados?`; if (!window.confirm(message)) return; const payload = new FormData(); payload.set("intent", "game_bulk_publish"); payload.set("is_published", String(publish)); games.forEach((game) => payload.append("ids", game.id)); try { await post(payload); await refresh(); } catch (error) { window.alert(error instanceof Error ? error.message : "No se pudo guardar."); } }
+    $<HTMLButtonElement>("#game-bulk-publish").addEventListener("click", () => bulk(true)); $<HTMLButtonElement>("#game-bulk-unpublish").addEventListener("click", () => bulk(false)); filterRows();
+  </script>
+</AdminLayout>

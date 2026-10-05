@@ -1,0 +1,13 @@
+---
+import AdminLayout from "../../../components/AdminLayout.astro";
+import AdminGameForm from "../../../components/AdminGameForm.astro";
+const client = Astro.locals.adminClient!;
+const [genreResult, tagResult] = await Promise.all([
+  client.from("genres").select("id,name").eq("is_active", true).order("name"),
+  client.from("tags").select("id,name").eq("is_active", true).order("name"),
+]);
+if (genreResult.error || tagResult.error) throw new Error("No se pudieron cargar los catálogos de referencia.");
+---
+<AdminLayout title="Nuevo juego" active="games">
+  <AdminGameForm genres={genreResult.data ?? []} tags={tagResult.data ?? []} selectedGenres={[]} selectedTags={[]} />
+</AdminLayout>

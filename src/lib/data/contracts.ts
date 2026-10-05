@@ -1,4 +1,5 @@
 export type AvailabilityStatus = "upcoming" | "preorder" | "available" | "unavailable";
+export type AccountType = "primary" | "secondary";
 export type CollectionType = "placement" | "campaign";
 export type RecommendationSort = "editorial" | "price_asc" | "newest";
 export type MediaRole = "cover" | "hero" | "gallery" | "poster" | "video";
@@ -39,6 +40,8 @@ export interface GameVariant {
   id: string;
   gameId: Game["id"];
   platformId: Platform["id"] | null;
+  /** Null only for legacy JSON rows without a confirmed commercial modality. */
+  accountType: AccountType | null;
   legacyPlatformLabel?: string;
   versionLabel: string | null;
   price: number;

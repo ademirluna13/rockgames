@@ -1,0 +1,35 @@
+---
+import "@fontsource-variable/google-sans";
+import "../../styles/admin.css";
+import "../../styles/admin-responsive.css";
+const message = Astro.url.searchParams.get("error");
+const signedOut = Astro.url.searchParams.get("ok") === "signedout";
+---
+<!doctype html>
+<html lang="es-MX">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="robots" content="noindex,nofollow" /><title>Acceso admin · ROCK GAMES</title></head>
+  <body class="admin-body">
+    <main class="admin-login">
+      <div class="admin-login-box">
+        <a class="admin-brand" href="/"><span class="admin-brand-mark">R</span><span>ROCK GAMES<small>ADMIN</small></span></a>
+        <h1>Acceso al panel</h1>
+        <p>Ingresa con tu cuenta administrativa.</p>
+        {signedOut && <div class="admin-feedback success" role="status">Sesión cerrada.</div>}
+        {message && <div class="admin-feedback error" role="alert">{message === "access" ? "Esta cuenta no tiene acceso al panel." : message === "csrf" ? "La solicitud no pudo verificarse. Recarga la página." : "No pudimos iniciar sesión. Revisa tus datos."}</div>}
+        <form method="post" action="/admin/api/login">
+          <label class="admin-field">Correo electrónico<input type="email" name="email" autocomplete="username" required maxlength="254" /></label>
+          <label class="admin-field">Contraseña<input type="password" name="password" autocomplete="current-password" required /></label>
+          <button class="admin-button" type="submit">Entrar al panel</button>
+        </form>
+      </div>
+    </main>
+    <script>
+      document.querySelector<HTMLFormElement>("form")?.addEventListener("submit", (event) => {
+        const form = event.currentTarget as HTMLFormElement;
+        if (!form.checkValidity()) return;
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (button) { button.disabled = true; button.textContent = "Comprobando…"; }
+      });
+    </script>
+  </body>
+</html>

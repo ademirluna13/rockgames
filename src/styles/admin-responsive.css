@@ -1,0 +1,152 @@
+/* Responsive behavior shared by every Admin route. */
+.admin-sidebar { z-index: 50; }
+.admin-nav-backdrop, .admin-menu-toggle { display: none; }
+.admin-menu-toggle:focus-visible, .admin-nav-backdrop:focus-visible { outline: 2px solid var(--a-lime); outline-offset: 3px; }
+.admin-top > div { min-width: 0; }
+.admin-heading > :last-child { flex: 0 0 auto; }
+.admin-card, .admin-variant-group, .admin-game-dialog, .admin-media-row { min-width: 0; }
+.admin-field { min-width: 0; }
+.admin-field input, .admin-field select, .admin-field textarea { min-width: 0; }
+.admin-help, .admin-section-note, .admin-badge, .admin-game-row, .admin-game-main, .admin-collection-title { overflow-wrap: anywhere; }
+.admin-form-actions { flex-wrap: wrap; }
+.admin-check { min-height: 40px; align-items: center; }
+
+@media (max-width: 980px) {
+  .admin-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-stat { padding: 18px; }
+  .admin-stat strong { font-size: clamp(27px, 5vw, 35px); }
+}
+
+@media (max-width: 860px) {
+  body.admin-nav-open { overflow: hidden; }
+  .admin-shell { display: block; min-height: 100dvh; }
+  .admin-sidebar { position: fixed; inset: 0 auto 0 0; width: min(292px, 86vw); height: 100dvh; overflow-y: auto; padding: 22px 18px; transform: translateX(-105%); transition: transform .24s ease; box-shadow: 22px 0 60px #0008; }
+  .admin-shell.nav-open .admin-sidebar { transform: translateX(0); }
+  .admin-sidebar nav { display: grid; gap: 3px; overflow: visible; }
+  .admin-nav-group { display: grid; gap: 3px; margin-bottom: 15px; }
+  .admin-nav-label { display: block; }
+  .admin-nav-link { min-height: 44px; white-space: normal; }
+  .admin-brand { margin: 0 8px 28px; }
+  .admin-account { display: block; }
+  .admin-nav-backdrop { position: fixed; z-index: 49; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: #030603b8; backdrop-filter: blur(3px); }
+  .admin-shell.nav-open .admin-nav-backdrop { display: block; }
+  .admin-main { width: 100%; }
+  .admin-menu-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 44px; min-height: 44px; padding: 0 11px; border: 1px solid var(--a-line); border-radius: 10px; background: #121812; color: var(--a-text); }
+  .admin-menu-label { font-size: 12px; font-weight: 700; }
+  .admin-top { height: auto; min-height: 64px; padding: 9px clamp(16px, 3vw, 28px); gap: 12px; }
+  .admin-top > div { gap: 10px; }
+  .admin-content { padding: 30px clamp(16px, 3vw, 28px) 70px; }
+  .admin-games-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-game-row { grid-template-columns: 22px 60px minmax(0, 1fr); }
+  .admin-game-meta, .admin-game-extra, .admin-game-actions { grid-column: 3 / -1; }
+  .admin-game-dialog { max-width: min(720px, calc(100vw - 32px)); }
+}
+
+@media (max-width: 600px) {
+  .admin-top { min-height: 58px; padding: 7px 12px; gap: 8px; }
+  .admin-top-label { display: none; }
+  .admin-top > div { margin-left: auto; gap: 8px; }
+  .admin-save-state { display: none; }
+  .admin-top a { min-height: 42px; display: inline-flex; align-items: center; }
+  .admin-content { padding: 25px 12px 58px; }
+  .admin-heading { align-items: stretch; gap: 14px; margin-bottom: 22px; }
+  .admin-heading h1 { font-size: clamp(29px, 8vw, 38px); overflow-wrap: anywhere; }
+  .admin-heading > :last-child { align-self: flex-start; }
+  .admin-grid, .admin-grid.three, .admin-grid.four { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .admin-card { padding: 16px; border-radius: 15px; }
+  .admin-card h2 { font-size: 19px; }
+  .admin-section-note { font-size: 12px; }
+  .admin-field { font-size: 12px; margin-bottom: 14px; }
+  .admin-field input, .admin-field select { min-height: 44px; }
+  .admin-button { min-height: 44px; white-space: normal; text-align: center; }
+  .admin-button.small { min-height: 42px; padding: 8px 11px; }
+  .admin-form-actions { align-items: stretch; }
+  .admin-form-actions > .admin-button { flex: 1 1 100%; }
+  .admin-inline { gap: 7px; }
+  .admin-games-toolbar { grid-template-columns: minmax(0, 1fr); padding: 13px; }
+  .admin-games-toolbar .admin-field:first-child { grid-column: auto; }
+  .admin-games-selection { align-items: stretch; gap: 9px; }
+  .admin-games-selection .admin-actions { width: 100%; flex-direction: column; align-items: stretch; }
+  .admin-games-selection .admin-actions > .admin-button { width: 100%; }
+  .admin-game-row { grid-template-columns: 20px 54px minmax(0, 1fr); gap: 9px; padding: 12px 10px; }
+  .admin-game-cover { width: 54px; height: 72px; }
+  .admin-game-main strong { font-size: 14px; }
+  .admin-game-platforms span { white-space: normal; }
+  .admin-game-meta, .admin-game-extra, .admin-game-actions { grid-column: 2 / -1; }
+  .admin-game-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-game-actions > .admin-button { white-space: normal; }
+  .admin-game-link { min-height: 42px; padding: 8px; text-align: center; }
+  .admin-game-dialog { position: fixed; inset: 0; width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; margin: 0; padding: 15px 13px calc(15px + env(safe-area-inset-bottom)); border-radius: 0; border-left: 0; border-right: 0; overflow: auto; overscroll-behavior: contain; }
+  .admin-game-dialog-head { position: sticky; z-index: 2; top: -15px; margin: -15px -13px 16px; padding: 16px 13px 10px; background: #161d16f5; backdrop-filter: blur(12px); }
+  .admin-game-dialog-head h2 { font-size: clamp(21px, 6vw, 27px); overflow-wrap: anywhere; }
+  #quick-form .admin-form-actions { position: sticky; z-index: 2; bottom: calc(-15px - env(safe-area-inset-bottom)); margin: 18px -13px calc(-15px - env(safe-area-inset-bottom)); padding: 12px 13px calc(12px + env(safe-area-inset-bottom)); background: #111711f5; border-top: 1px solid var(--a-line); backdrop-filter: blur(12px); }
+  #quick-feedback { padding-bottom: 74px; }
+  .admin-game-close { min-width: 44px; min-height: 44px; }
+  .admin-variant-group { padding: 14px; }
+  .admin-variant-group-heading { align-items: flex-start; }
+  .admin-variant-slots { grid-template-columns: minmax(0, 1fr); }
+  .admin-variant-slot { padding: 13px; }
+  .admin-variant-slot .admin-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-variant-missing { min-height: 100px; }
+  .admin-variant-group .admin-form-actions { align-items: stretch; }
+  .admin-collection-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-collection-tabs .admin-button { white-space: normal; }
+  .admin-collection-row { align-items: flex-start; flex-wrap: wrap; gap: 9px; padding: 13px 0; }
+  .admin-collection-title { flex: 1 1 calc(100% - 48px); }
+  .admin-collection-row .admin-actions { width: 100%; margin-left: 39px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-collection-row .admin-actions > * { min-width: 0; }
+  .admin-collection-row .admin-actions form .admin-button { width: 100%; }
+  .admin-media-toolbar { align-items: stretch; flex-direction: column; }
+  .admin-media-toolbar > form { width: 100%; }
+  .admin-media-toolbar > form .admin-button { width: 100%; }
+  .admin-filter-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-media-search { width: 100%; min-width: 0; }
+  .admin-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .admin-media-info { padding: 9px; }
+  .admin-media-info strong, .admin-media-info small, .admin-media-usages { overflow-wrap: anywhere; }
+  .admin-media-info .admin-actions { display: grid; grid-template-columns: 1fr; }
+  .admin-media-info .admin-actions > *, .admin-media-info .admin-actions .admin-button { width: 100%; }
+  .admin-media-picker-actions { align-items: stretch; flex-direction: column; }
+  .admin-media-picker-actions > a { width: 100%; }
+  .admin-media-picker-actions details { width: 100%; min-width: 0; }
+  .admin-media-picker-tools { align-items: stretch; flex-direction: column; }
+  .admin-filter-buttons { gap: 6px; }
+  .admin-media-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: min(45dvh, 360px); }
+  .admin-media-choice { min-width: 0; min-height: 108px; overflow-wrap: anywhere; }
+  .admin-media-choice-preview { height: 76px; }
+  .admin-media-picker-preview { min-height: 150px; max-width: 100%; overflow: hidden; }
+  .admin-media-picker-preview img, .admin-media-picker-preview video { max-width: 100%; height: auto; max-height: 240px; object-fit: contain; }
+  .admin-media-row { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
+  .admin-media-row-preview { height: 190px; min-height: 0; }
+  .admin-media-row-content .admin-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-gallery-item { grid-template-columns: 76px minmax(0, 1fr); }
+  .admin-gallery-thumb { min-height: 76px; }
+  .admin-gallery-controls { grid-template-columns: minmax(0, 1fr); }
+  .admin-gallery-controls form:first-of-type { grid-column: auto; }
+  .admin-gallery-controls .admin-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-upload-inline { align-items: stretch; flex-direction: column; }
+  .admin-upload-inline .admin-field { width: 100%; min-width: 0; }
+  .admin-settings-group { padding: 16px 0; }
+  .admin-settings-group h2 { margin-bottom: 12px; }
+  .admin-login { min-height: 100svh; padding: 16px; }
+  .admin-login-box { width: 100%; max-width: 430px; padding: clamp(20px, 7vw, 32px); border-radius: 17px; }
+  .admin-login-box h1 { font-size: clamp(28px, 9vw, 35px); }
+  .admin-stat { min-width: 0; padding: 16px; }
+  .admin-stat strong { font-size: clamp(26px, 8vw, 34px); }
+}
+
+@media (max-width: 360px) {
+  .admin-menu-label { display: none; }
+  .admin-menu-toggle { width: 44px; padding: 0; }
+  .admin-game-row { grid-template-columns: 18px 48px minmax(0, 1fr); gap: 7px; padding-inline: 8px; }
+  .admin-game-cover { width: 48px; height: 66px; }
+  .admin-game-actions { grid-template-columns: minmax(0, 1fr); }
+  .admin-collection-tabs { grid-template-columns: minmax(0, 1fr); }
+  .admin-media-grid, .admin-media-choice-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-media-choice-preview { height: 110px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar { transition: none; }
+}

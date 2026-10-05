@@ -20,6 +20,7 @@ export interface CatalogCard {
   selectionId: string;
   gameId: Game["id"];
   variantId: GameVariant["id"] | null;
+  accountType: GameVariant["accountType"];
   slug: Game["slug"];
   title: Game["title"];
   platform: string;
@@ -48,6 +49,7 @@ export interface CatalogVariant {
   platformId: GameVariant["platformId"];
   platform: string;
   platformFamilySlug: PlatformFamily["slug"];
+  accountType: GameVariant["accountType"];
   versionLabel: GameVariant["versionLabel"];
   price: GameVariant["price"];
   oldPrice: GameVariant["compareAtPrice"];
@@ -150,6 +152,7 @@ export function withCatalogVariant(card: CatalogCard, variant: CatalogVariant): 
     ...card,
     selectionId: variant.selectionId,
     variantId: variant.id,
+    accountType: variant.accountType,
     platform: variant.platform,
     platformFamilySlug: variant.platformFamilySlug,
     price: variant.price,

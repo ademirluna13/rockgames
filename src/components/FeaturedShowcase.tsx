@@ -5,6 +5,7 @@ import type { FeaturedCard } from "../lib/data";
 import { platformBrand, themeForPlatform } from "../lib/platforms";
 import BrandIcon from "./BrandIcon";
 import type { Brand } from "./BrandIcon";
+import { accountTypeLabel } from "../lib/account-type";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -105,7 +106,7 @@ export default function FeaturedShowcase({ games, selected, money, onToggle }: P
           <img src={game.cover} alt="" loading={position === "is-active" ? "eager" : "lazy"} decoding="async" />
           <div className="showcase-shade" aria-hidden="true" />
           <div className="showcase-top"><span className="showcase-platform" aria-label={game.platform} title={game.platform}><BrandIcon name={platformBrand(game.platform) as Brand} /></span><span>{game.tag}</span></div>
-          <div className="showcase-copy"><p className="showcase-overline">{game.genre}</p><h3>{game.title}</h3><p className="showcase-description">{game.description}</p><div className="showcase-bottom"><div className="showcase-price">{discount > 0 && <span>−{discount}%</span>}{game.oldPrice && <s>{money(game.oldPrice)}</s>}<strong>{money(game.price)}</strong></div><button type="button" aria-pressed={selected.includes(game.selectionId)} onClick={() => onToggle(game.selectionId)} aria-label={`${selected.includes(game.selectionId) ? "Quitar" : "Guardar"} ${game.title} ${selected.includes(game.selectionId) ? "de" : "en"} Mis juegos`}>{selected.includes(game.selectionId) ? "Guardado ✓" : "Guardar en Mis juegos ↗"}</button></div></div>
+          <div className="showcase-copy"><p className="showcase-overline">{game.genre}{game.accountType ? ` · ${accountTypeLabel(game.accountType)}` : ""}</p><h3>{game.title}</h3><p className="showcase-description">{game.description}</p><div className="showcase-bottom"><div className="showcase-price">{discount > 0 && <span>−{discount}%</span>}{game.oldPrice && <s>{money(game.oldPrice)}</s>}<strong>{game.variants.length > 1 && game.price === Math.min(...game.variants.filter((variant) => variant.available).map((variant) => variant.price)) ? "Desde " : ""}{money(game.price)}</strong></div><button type="button" aria-pressed={selected.includes(game.selectionId)} onClick={() => onToggle(game.selectionId)} aria-label={`${selected.includes(game.selectionId) ? "Quitar" : "Guardar"} ${game.title} ${selected.includes(game.selectionId) ? "de" : "en"} Mis juegos`}>{selected.includes(game.selectionId) ? "Guardado ✓" : "Guardar en Mis juegos ↗"}</button></div></div>
           {position !== "is-active" && <span className="showcase-preview-label" aria-hidden="true">Ver portada ↗</span>}
         </article>;
       })}

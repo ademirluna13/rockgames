@@ -1,0 +1,31 @@
+---
+type Platform = { id: string; name: string };
+type Variant = { id: string; platform_id: string; version_key: string; version_label: string | null; account_type: "primary" | "secondary" | null; price: number; compare_at_price: number | null; availability: string; release_date: string | null; new_until: string | null; stock_quantity: number | null; is_active: boolean };
+const { gameId, platforms, variant, draftPlatformId, draftVersionLabel, draftVersionKey, draftAccountType } = Astro.props as { gameId: string; platforms: Platform[]; variant?: Variant; draftPlatformId?: string; draftVersionLabel?: string; draftVersionKey?: string; draftAccountType?: "primary" | "secondary" };
+const toLocal = (value: string | null | undefined) => value ? new Date(value).toISOString().slice(0, 16) : "";
+---
+<form method="post" action="/admin/api/actions" class="admin-card" id={!variant ? "new-variant" : undefined}>
+  <input type="hidden" name="intent" value="variant_save" /><input type="hidden" name="return_to" value={`/admin/games/${gameId}`} /><input type="hidden" name="game_id" value={gameId} />
+  {variant && <input type="hidden" name="id" value={variant.id} />}
+  {variant && <input type="hidden" name="version_key" value={variant.version_key} />}
+  {!variant && draftVersionKey && <input type="hidden" name="version_key" value={draftVersionKey} />}
+  <h2>{variant ? "Editar versión" : "Agregar versión disponible"}</h2>
+  <div class="admin-grid three">
+    <label class="admin-field">Consola<select name="platform_id" required>{platforms.map((platform) => <option value={platform.id} selected={(variant?.platform_id ?? draftPlatformId) === platform.id}>{platform.name}</option>)}</select></label>
+    <label class="admin-field">Tipo de cuenta<select name="account_type" required><option value="">Selecciona una modalidad</option><option value="secondary" selected={(variant?.account_type ?? draftAccountType) === "secondary"}>Secundaria</option><option value="primary" selected={(variant?.account_type ?? draftAccountType) === "primary"}>Principal</option></select></label>
+    <label class="admin-field">Edición<input name="version_label" value={variant?.version_label ?? draftVersionLabel ?? "Estándar"} maxlength="100" placeholder="Estándar, Deluxe…" required /></label>
+  </div>
+  <div class="admin-grid three">
+    <label class="admin-field">Precio actual<input type="number" name="price" value={variant?.price ?? ""} required min="0" max="99999999" step="0.01" /></label>
+  </div>
+  <div class="admin-grid three">
+    <label class="admin-field">Precio anterior<input type="number" name="compare_at_price" value={variant?.compare_at_price ?? ""} min="0" max="99999999" step="0.01" /><small class="admin-help">Solo se muestra cuando es mayor al precio actual.</small></label>
+    <label class="admin-field">Disponibilidad<select name="availability"><option value="available" selected={variant?.availability === "available"}>Disponible</option><option value="unavailable" selected={variant?.availability === "unavailable"}>No disponible</option><option value="preorder" selected={variant?.availability === "preorder"}>Preventa</option><option value="upcoming" selected={variant?.availability === "upcoming"}>Próximamente</option></select></label>
+    <label class="admin-field">Fecha de lanzamiento<input type="date" name="release_date" value={variant?.release_date ?? ""} /></label>
+  </div>
+  <details class="admin-advanced"><summary>Más opciones</summary>
+    <div class="admin-grid"><label class="admin-field">Mostrar como novedad hasta<input type="datetime-local" name="new_until" value={toLocal(variant?.new_until)} data-utc-value={variant?.new_until ?? ""} /></label><label class="admin-field">Existencias (opcional)<input type="number" name="stock_quantity" value={variant?.stock_quantity ?? ""} min="0" step="1" /></label></div>
+  </details>
+  <label class="admin-check"><input type="checkbox" name="is_active" checked={variant?.is_active ?? true} />Disponible en el catálogo</label>
+  <div class="admin-form-actions"><button class="admin-button" type="submit">{variant ? "Guardar cambios" : "Agregar versión"}</button></div>
+</form>

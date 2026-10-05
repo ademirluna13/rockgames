@@ -5,6 +5,7 @@ import { withCatalogVariant } from "../lib/data/view-models";
 import { platformBrand, themeForPlatform } from "../lib/platforms";
 import BrandIcon from "./BrandIcon";
 import type { Brand } from "./BrandIcon";
+import { accountTypeLabel } from "../lib/account-type";
 
 type Props = {
   game: CatalogCard;
@@ -50,11 +51,11 @@ export default function ProductPoster({ game, selectedIds, money, onToggle, feat
     <div className="featured-content">
       <h3>{game.title}</h3>
       <div className="poster-extra" ref={detailRef}><p>{game.description}</p><small>{game.genre}</small></div>
-      {game.variants.length > 1 && <label className="poster-variant-select"><span>Plataforma / edición</span><select value={activeVariant?.id ?? ""} onChange={(event) => setActiveVariantId(event.target.value)} aria-label={`Elegir plataforma o edición de ${game.title}`}>{game.variants.map((variant: CatalogVariant) => <option key={variant.id} value={variant.id}>{variant.platform}{variant.versionLabel ? ` · ${variant.versionLabel}` : ""}</option>)}</select></label>}
+      {game.variants.length > 1 ? <label className="poster-variant-select"><span>Elige modalidad</span><select value={activeVariant?.id ?? ""} onChange={(event) => setActiveVariantId(event.target.value)} aria-label={`Elegir consola, edición y tipo de cuenta de ${game.title}`}>{game.variants.map((variant: CatalogVariant) => <option key={variant.id} value={variant.id}>{variant.platform}{variant.versionLabel ? ` · ${variant.versionLabel}` : ""} · {accountTypeLabel(variant.accountType)} · {money(variant.price)}</option>)}</select></label> : activeVariant?.accountType && <p className="poster-account-type">{activeVariant.platform} · {accountTypeLabel(activeVariant.accountType)}</p>}
       <div className="featured-bottom">
         <div className="featured-price">
           {discount > 0 && <span className="discount-label">−{discount}%</span>}
-          <span className="price-row">{current.oldPrice && <s>{money(current.oldPrice)}</s>}<strong>{money(current.price)}</strong></span>
+          <span className="price-row">{current.oldPrice && <s>{money(current.oldPrice)}</s>}<strong>{game.variants.length > 1 && current.price === Math.min(...game.variants.map((variant) => variant.price)) ? "Desde " : ""}{money(current.price)}</strong></span>
         </div>
         <button type="button" className={selected ? "selected" : ""} aria-pressed={selected} onClick={() => onToggle(activeVariant?.selectionId ?? game.selectionId)} aria-label={`${selected ? "Quitar" : "Guardar"} ${game.title} ${selected ? "de" : "en"} Mis juegos`}>
           <span>{selected ? "Guardado" : "Guardar"}</span><span aria-hidden="true">{selected ? "✓" : "+"}</span>

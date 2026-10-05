@@ -1,0 +1,73 @@
+---
+import AdminLayout from "../../components/AdminLayout.astro";
+import { getMediaUsage, listAdminMedia } from "../../lib/admin/media";
+const client = Astro.locals.adminClient!;
+const [files, usage] = await Promise.all([listAdminMedia(client), getMediaUsage(client)]);
+const formatSize = (size: number | null) => size == null ? "Tamaño no disponible" : size < 1024 * 1024 ? `${Math.ceil(size / 1024)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
+const unusedCount = files.filter((file) => !usage.has(file.path)).length;
+---
+<AdminLayout title="Biblioteca de medios" active="media">
+  <p class="admin-section-note">Aquí están los archivos usados en juegos y en el sitio. Las imágenes se guardan optimizadas en WebP; los videos se conservan en MP4. Máximo 20 MB por archivo.</p>
+  <form method="post" action="/admin/api/actions" enctype="multipart/form-data" class="admin-card" data-media-upload>
+    <input type="hidden" name="intent" value="media_upload" /><input type="hidden" name="return_to" value="/admin/media" />
+    <h2>Subir archivo a la biblioteca</h2><div class="admin-grid">
+      <label class="admin-field">Tipo de archivo<select name="role" data-upload-role><option value="cover">Logo o marca</option><option value="hero">Imagen</option><option value="poster">Imagen de respaldo</option><option value="gallery">Imagen para galería</option><option value="video">Video principal · MP4</option></select></label>
+      <label class="admin-field">Elegir archivo<input type="file" name="files" required accept="image/jpeg,image/png,image/webp,image/avif" data-upload-files /></label>
+    </div>
+    <p class="admin-help">Los archivos cargados aquí quedan en la biblioteca para seleccionarlos desde la página correspondiente. Para asignar una portada de juego, súbela desde su ficha.</p>
+    <button class="admin-button" type="submit">Subir archivo</button><span class="admin-upload-state" aria-live="polite"></span>
+  </form>
+  <div class="admin-media-toolbar">
+    <div class="admin-filter-buttons" role="group" aria-label="Filtrar biblioteca"><button type="button" class="admin-button ghost small active" data-media-filter="all">Todos <span>{files.length}</span></button><button type="button" class="admin-button ghost small" data-media-filter="image">Imágenes</button><button type="button" class="admin-button ghost small" data-media-filter="video">Videos</button><button type="button" class="admin-button ghost small" data-media-filter="unused">Sin usar <span>{unusedCount}</span></button></div>
+    <label class="admin-field admin-media-search">Buscar archivos<input type="search" placeholder="Buscar por tipo o fecha" data-media-search /></label>
+    <form method="post" action="/admin/api/actions" data-confirm={`Se eliminarán ${unusedCount} archivos sin referencias. Los archivos usados en juegos, Home o como logo se conservarán. ¿Continuar?`}><input type="hidden" name="intent" value="media_delete_unused" /><input type="hidden" name="return_to" value="/admin/media" /><button class="admin-button danger small" type="submit" disabled={unusedCount === 0}>Eliminar archivos sin usar ({unusedCount})</button></form>
+  </div>
+  {files.length ? <div class="admin-media-grid" data-media-grid>
+    {files.map((file) => {
+      const isVideo = file.contentType.startsWith("video/");
+      const uses = usage.get(file.path) ?? [];
+      const searchText = `${file.folder} ${file.fileName} ${file.contentType} ${file.createdAt ?? ""}`.toLowerCase();
+      return <article class="admin-media" data-media-item data-type={isVideo ? "video" : "image"} data-used={uses.length ? "true" : "false"} data-search={searchText}>
+        <a class="admin-media-preview" href={file.publicUrl} target="_blank" rel="noopener noreferrer" aria-label="Abrir vista previa">{isVideo ? <video src={file.publicUrl} muted preload="metadata" /> : <img src={file.publicUrl} alt="" loading="lazy" />}</a>
+        <div class="admin-media-info"><strong>{isVideo ? "Video MP4" : "Imagen"}</strong><small>{formatSize(file.size)}{file.width && file.height ? ` · ${file.width} × ${file.height}` : ""}</small><small>{file.createdAt ? new Date(file.createdAt).toLocaleDateString("es-MX") : "Fecha no disponible"}</small>
+          <p class="admin-media-use">{uses.length ? `Se usa en ${uses.length} lugar${uses.length === 1 ? "" : "es"}:` : "Sin usar"}</p>
+          {uses.length > 0 && <ul class="admin-media-usages">{uses.map((place) => <li>{place}</li>)}</ul>}
+          <div class="admin-actions" style="margin-top:10px"><a class="admin-button ghost small" href={file.publicUrl} target="_blank" rel="noopener noreferrer">Vista ↗</a>
+            <form method="post" action="/admin/api/actions" data-confirm="¿Eliminar este archivo? Esta acción no se puede deshacer."><input type="hidden" name="intent" value="media_delete" /><input type="hidden" name="return_to" value="/admin/media" /><input type="hidden" name="storage_path" value={file.path} /><button class="admin-button danger small" type="submit" disabled={uses.length > 0} title={uses.length ? `Se utiliza en ${uses.length} lugar(es)` : "Eliminar archivo"}>Eliminar</button></form>
+          </div>
+        </div>
+      </article>;
+    })}
+  </div> : <div class="admin-card admin-empty"><h2>La biblioteca está vacía</h2><p>Sube el primer archivo para usarlo en un juego o en la portada del sitio.</p></div>}
+  <script>
+    const filterButtons = document.querySelectorAll<HTMLButtonElement>("[data-media-filter]");
+    const mediaSearch = document.querySelector<HTMLInputElement>("[data-media-search]");
+    const mediaItems = [...document.querySelectorAll<HTMLElement>("[data-media-item]")];
+    let activeMediaFilter = "all";
+    const filterMedia = () => {
+      const query = mediaSearch?.value.trim().toLowerCase() ?? "";
+      mediaItems.forEach((item) => {
+        const typeMatches = activeMediaFilter === "all" || (activeMediaFilter === "unused" ? item.dataset.used === "false" : item.dataset.type === activeMediaFilter);
+        item.hidden = !typeMatches || !item.dataset.search?.includes(query);
+      });
+    };
+    filterButtons.forEach((button) => button.addEventListener("click", () => {
+      activeMediaFilter = button.dataset.mediaFilter ?? "all";
+      filterButtons.forEach((candidate) => candidate.classList.toggle("active", candidate === button));
+      filterMedia();
+    }));
+    mediaSearch?.addEventListener("input", filterMedia);
+    const role = document.querySelector<HTMLSelectElement>("[data-upload-role]");
+    const upload = document.querySelector<HTMLInputElement>("[data-upload-files]");
+    role?.addEventListener("change", () => {
+      if (!upload) return;
+      const video = role.value === "video";
+      upload.accept = video ? "video/mp4" : "image/jpeg,image/png,image/webp,image/avif";
+      upload.multiple = role.value === "gallery";
+    });
+    document.querySelector<HTMLFormElement>("[data-media-upload]")?.addEventListener("submit", () => {
+      const state = document.querySelector<HTMLElement>(".admin-upload-state");
+      if (state) state.textContent = "Subiendo y optimizando…";
+    });
+  </script>
+</AdminLayout>
